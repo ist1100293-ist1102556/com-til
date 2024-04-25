@@ -210,3 +210,9 @@ void til::xml_writer::do_nullptr_node(til::nullptr_node * const node, int lvl) {
   // TODO: implement this
   throw "not implemented";
 }
+
+//---------------------------------------------------------------------------
+void til::xml_writer::do_stop_node(til::stop_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}
