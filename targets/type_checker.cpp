@@ -8,7 +8,10 @@
 //---------------------------------------------------------------------------
 
 void til::type_checker::do_sequence_node(cdk::sequence_node *const node, int lvl) {
-  // EMPTY
+  //Check the level
+  for(size_t i = 0; i < node->size(); i++) {
+    node->node(i)->accept(this, lvl);
+  }
 }
 
 //---------------------------------------------------------------------------
@@ -166,7 +169,8 @@ void til::type_checker::do_evaluation_node(til::evaluation_node *const node, int
 }
 
 void til::type_checker::do_print_node(til::print_node *const node, int lvl) {
-  node->argument()->accept(this, lvl + 2);
+  //Check the level
+  node->arguments()->accept(this, lvl + 2);
 }
 
 //---------------------------------------------------------------------------
