@@ -5,7 +5,7 @@
 
 namespace til {
     /**
-   * Class for describing  nodes.
+   * Class for describing next nodes.
    */
   class next_node: public cdk::basic_node{
     int _level;

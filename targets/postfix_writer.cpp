@@ -293,3 +293,9 @@ void til::postfix_writer::do_next_node(til::next_node * const node, int lvl) {
   // TODO: implement this
   throw "not implemented";
 }
+
+//---------------------------------------------------------------------------
+void til::postfix_writer::do_return_node(til::return_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}

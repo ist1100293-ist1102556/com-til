@@ -212,3 +212,9 @@ void til::type_checker::do_next_node(til::next_node * const node, int lvl) {
   // TODO: implement this
   throw "not implemented";
 }
+
+//---------------------------------------------------------------------------
+void til::type_checker::do_return_node(til::return_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}
