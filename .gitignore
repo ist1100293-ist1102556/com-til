@@ -1,0 +1,42 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+.dropbox.attr
+*.tab.c
+*.tab.h
+
+# Auto-generated
+*.asm
+.auto
+/til
+/til_parser.output
+/til_scanner.cpp
+
+.vscode
+.devcontainer
