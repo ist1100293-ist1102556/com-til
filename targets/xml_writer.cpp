@@ -164,14 +164,14 @@ void til::xml_writer::do_read_node(til::read_node * const node, int lvl) {
 
 //---------------------------------------------------------------------------
 
-void til::xml_writer::do_while_node(til::while_node * const node, int lvl) {
+void til::xml_writer::do_loop_node(til::loop_node * const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
   openTag(node, lvl);
   openTag("condition", lvl + 2);
   node->condition()->accept(this, lvl + 4);
   closeTag("condition", lvl + 2);
   openTag("block", lvl + 2);
-  node->block()->accept(this, lvl + 4);
+  node->instruction()->accept(this, lvl + 4);
   closeTag("block", lvl + 2);
   closeTag(node, lvl);
 }
