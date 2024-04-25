@@ -228,3 +228,9 @@ void til::xml_writer::do_return_node(til::return_node * const node, int lvl) {
   // TODO: implement this
   throw "not implemented";
 }
+
+//---------------------------------------------------------------------------
+void til::xml_writer::do_declaration_node(til::declaration_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}
