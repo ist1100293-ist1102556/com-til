@@ -204,3 +204,9 @@ void til::xml_writer::do_if_else_node(til::if_else_node * const node, int lvl) {
   closeTag("else", lvl + 2);
   closeTag(node, lvl);
 }
+
+//---------------------------------------------------------------------------
+void til::xml_writer::do_nullptr_node(til::nullptr_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}
