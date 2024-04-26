@@ -234,3 +234,9 @@ void til::type_checker::do_block_node(til::block_node * const node, int lvl) {
   // TODO: implement this
   throw "not implemented";
 }
+
+//---------------------------------------------------------------------------
+void til::type_checker::do_function_call_node(til::function_call_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}
