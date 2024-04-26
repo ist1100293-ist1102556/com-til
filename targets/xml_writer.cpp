@@ -258,3 +258,9 @@ void til::xml_writer::do_sizeof_operator_node(til::sizeof_operator_node * const 
   // TODO: implement this
   throw "not implemented";
 }
+
+//---------------------------------------------------------------------------
+void til::xml_writer::do_referencing_operator_node(til::referencing_operator_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}

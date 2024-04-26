@@ -337,3 +337,9 @@ void til::postfix_writer::do_sizeof_operator_node(til::sizeof_operator_node * co
   // TODO: implement this
   throw "not implemented";
 }
+
+//---------------------------------------------------------------------------
+void til::postfix_writer::do_referencing_operator_node(til::referencing_operator_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}
