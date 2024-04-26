@@ -310,3 +310,9 @@ void til::postfix_writer::do_declaration_node(til::declaration_node * const node
   // TODO: implement this
   throw "not implemented";
 }
+
+//---------------------------------------------------------------------------
+void til::postfix_writer::do_block_node(til::block_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}
