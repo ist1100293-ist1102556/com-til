@@ -264,3 +264,9 @@ void til::xml_writer::do_referencing_operator_node(til::referencing_operator_nod
   // TODO: implement this
   throw "not implemented";
 }
+
+//---------------------------------------------------------------------------
+void til::xml_writer::do_pointer_indexing_node(til::pointer_indexing_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}

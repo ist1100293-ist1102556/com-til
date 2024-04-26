@@ -258,3 +258,9 @@ void til::type_checker::do_referencing_operator_node(til::referencing_operator_n
   // TODO: implement this
   throw "not implemented";
 }
+
+//---------------------------------------------------------------------------
+void til::type_checker::do_pointer_indexing_node(til::pointer_indexing_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}
