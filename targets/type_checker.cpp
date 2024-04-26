@@ -246,3 +246,9 @@ void til::type_checker::do_objects_operator_node(til::objects_operator_node * co
   // TODO: implement this
   throw "not implemented";
 }
+
+//---------------------------------------------------------------------------
+void til::type_checker::do_sizeof_operator_node(til::sizeof_operator_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}
