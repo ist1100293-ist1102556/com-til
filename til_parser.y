@@ -55,7 +55,7 @@
 %}
 %%
 
-program : tBEGIN list tEND { compiler->ast(new til::program_node(LINE, $2)); }
+program : tBEGIN list tEND { compiler->ast(new til::function_node(LINE, new til::block_node(LINE, nullptr, $2))); }
         ;
 
 list : stmt      { $$ = new cdk::sequence_node(LINE, $1); }
@@ -63,9 +63,9 @@ list : stmt      { $$ = new cdk::sequence_node(LINE, $1); }
      ;
 
 stmt : expr ';'                         { $$ = new til::evaluation_node(LINE, $1); }
-     | tPRINT expr ';'                  { $$ = new til::print_node(LINE, $2); }
-     | tREAD lval ';'                   { $$ = new til::read_node(LINE, $2); }
-     | tWHILE '(' expr ')' stmt         { $$ = new til::while_node(LINE, $3, $5); }
+     | tPRINT expr ';'                  { $$ = new til::print_node(LINE, new cdk::sequence_node(LINE, $2), true); }
+     | tREAD lval ';'                   { $$ = new cdk::assignment_node(LINE, $2, new til::read_node(LINE));}
+     | tWHILE '(' expr ')' stmt         { $$ = new til::loop_node(LINE, $3, $5); }
      | tIF '(' expr ')' stmt %prec tIFX { $$ = new til::if_node(LINE, $3, $5); }
      | tIF '(' expr ')' stmt tELSE stmt { $$ = new til::if_else_node(LINE, $3, $5, $7); }
      | '{' list '}'                     { $$ = $2; }

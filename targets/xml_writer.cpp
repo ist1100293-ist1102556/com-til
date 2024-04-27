@@ -131,9 +131,9 @@ void til::xml_writer::do_assignment_node(cdk::assignment_node * const node, int 
 
 //---------------------------------------------------------------------------
 
-void til::xml_writer::do_program_node(til::program_node * const node, int lvl) {
+void til::xml_writer::do_function_node(til::function_node * const node, int lvl) {
   openTag(node, lvl);
-  node->statements()->accept(this, lvl + 4);
+  node->block()->accept(this, lvl + 4);
   closeTag(node, lvl);
 }
 
@@ -149,29 +149,27 @@ void til::xml_writer::do_evaluation_node(til::evaluation_node * const node, int 
 void til::xml_writer::do_print_node(til::print_node * const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
   openTag(node, lvl);
-  node->argument()->accept(this, lvl + 2);
+  node->arguments()->accept(this, lvl + 2);
   closeTag(node, lvl);
 }
 
 //---------------------------------------------------------------------------
 
 void til::xml_writer::do_read_node(til::read_node * const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
-  openTag(node, lvl);
-  node->argument()->accept(this, lvl + 2);
-  closeTag(node, lvl);
+  // TODO: implement this
+  throw "not implemented";
 }
 
 //---------------------------------------------------------------------------
 
-void til::xml_writer::do_while_node(til::while_node * const node, int lvl) {
+void til::xml_writer::do_loop_node(til::loop_node * const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
   openTag(node, lvl);
   openTag("condition", lvl + 2);
   node->condition()->accept(this, lvl + 4);
   closeTag("condition", lvl + 2);
   openTag("block", lvl + 2);
-  node->block()->accept(this, lvl + 4);
+  node->instruction()->accept(this, lvl + 4);
   closeTag("block", lvl + 2);
   closeTag(node, lvl);
 }
@@ -203,4 +201,70 @@ void til::xml_writer::do_if_else_node(til::if_else_node * const node, int lvl) {
   node->elseblock()->accept(this, lvl + 4);
   closeTag("else", lvl + 2);
   closeTag(node, lvl);
+}
+
+//---------------------------------------------------------------------------
+void til::xml_writer::do_nullptr_node(til::nullptr_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}
+
+//---------------------------------------------------------------------------
+void til::xml_writer::do_stop_node(til::stop_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}
+
+//---------------------------------------------------------------------------
+void til::xml_writer::do_next_node(til::next_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}
+
+//---------------------------------------------------------------------------
+void til::xml_writer::do_return_node(til::return_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}
+
+//---------------------------------------------------------------------------
+void til::xml_writer::do_declaration_node(til::declaration_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}
+
+//---------------------------------------------------------------------------
+void til::xml_writer::do_block_node(til::block_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}
+
+//---------------------------------------------------------------------------
+void til::xml_writer::do_function_call_node(til::function_call_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}
+
+//---------------------------------------------------------------------------
+void til::xml_writer::do_objects_operator_node(til::objects_operator_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}
+
+//---------------------------------------------------------------------------
+void til::xml_writer::do_sizeof_operator_node(til::sizeof_operator_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}
+
+//---------------------------------------------------------------------------
+void til::xml_writer::do_referencing_operator_node(til::referencing_operator_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}
+
+//---------------------------------------------------------------------------
+void til::xml_writer::do_pointer_indexing_node(til::pointer_indexing_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
 }

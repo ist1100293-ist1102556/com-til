@@ -169,32 +169,34 @@ void til::postfix_writer::do_assignment_node(cdk::assignment_node * const node, 
 
 //---------------------------------------------------------------------------
 
-void til::postfix_writer::do_program_node(til::program_node * const node, int lvl) {
+void til::postfix_writer::do_function_node(til::function_node * const node, int lvl) {
   // Note that Simple doesn't have functions. Thus, it doesn't need
   // a function node. However, it must start in the main function.
   // The ProgramNode (representing the whole program) doubles as a
   // main function node.
 
   // generate the main function (RTS mandates that its name be "_main")
-  _pf.TEXT();
-  _pf.ALIGN();
-  _pf.GLOBAL("_main", _pf.FUNC());
-  _pf.LABEL("_main");
-  _pf.ENTER(0);  // Simple doesn't implement local variables
+  if (node->is_main()) {
+    _pf.TEXT();
+    _pf.ALIGN();
+    _pf.GLOBAL("_main", _pf.FUNC());
+    _pf.LABEL("_main");
+    _pf.ENTER(0);  // Simple doesn't implement local variables
 
-  node->statements()->accept(this, lvl);
+    node->block()->accept(this, lvl);
 
-  // end the main function
-  _pf.INT(0);
-  _pf.STFVAL32();
-  _pf.LEAVE();
-  _pf.RET();
+    // end the main function
+    _pf.INT(0);
+    _pf.STFVAL32();
+    _pf.LEAVE();
+    _pf.RET();
 
-  // these are just a few library function imports
-  _pf.EXTERN("readi");
-  _pf.EXTERN("printi");
-  _pf.EXTERN("prints");
-  _pf.EXTERN("println");
+    // these are just a few library function imports
+    _pf.EXTERN("readi");
+    _pf.EXTERN("printi");
+    _pf.EXTERN("prints");
+    _pf.EXTERN("println");
+  }
 }
 
 //---------------------------------------------------------------------------
@@ -214,39 +216,41 @@ void til::postfix_writer::do_evaluation_node(til::evaluation_node * const node, 
 
 void til::postfix_writer::do_print_node(til::print_node * const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
-  node->argument()->accept(this, lvl); // determine the value to print
-  if (node->argument()->is_typed(cdk::TYPE_INT)) {
-    _pf.CALL("printi");
-    _pf.TRASH(4); // delete the printed value
-  } else if (node->argument()->is_typed(cdk::TYPE_STRING)) {
-    _pf.CALL("prints");
-    _pf.TRASH(4); // delete the printed value's address
-  } else {
-    std::cerr << "ERROR: CANNOT HAPPEN!" << std::endl;
-    exit(1);
+  for(size_t i = 0; i < node->arguments()->size(); i++){
+    auto *arg = dynamic_cast<cdk::expression_node*>(node->arguments()->node(i));  
+    arg->accept(this, lvl); // determine the value to print
+    if (arg->is_typed(cdk::TYPE_INT)) {
+      _pf.CALL("printi");
+      _pf.TRASH(4); // delete the printed value
+    } else if (arg->is_typed(cdk::TYPE_STRING)) {
+      _pf.CALL("prints");
+      _pf.TRASH(4); // delete the printed value's address
+    } else {
+      std::cerr << "ERROR: CANNOT HAPPEN!" << std::endl;
+      exit(1);
+    }
   }
-  _pf.CALL("println"); // print a newline
+  if (node->newline()) {
+    _pf.CALL("println"); // print a newline
+  }
 }
 
 //---------------------------------------------------------------------------
 
 void til::postfix_writer::do_read_node(til::read_node * const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
-  _pf.CALL("readi");
-  _pf.LDFVAL32();
-  node->argument()->accept(this, lvl);
-  _pf.STINT();
+  // TODO: implement this
+  throw "not implemented";
 }
 
 //---------------------------------------------------------------------------
 
-void til::postfix_writer::do_while_node(til::while_node * const node, int lvl) {
+void til::postfix_writer::do_loop_node(til::loop_node * const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
   int lbl1, lbl2;
   _pf.LABEL(mklbl(lbl1 = ++_lbl));
   node->condition()->accept(this, lvl);
   _pf.JZ(mklbl(lbl2 = ++_lbl));
-  node->block()->accept(this, lvl + 2);
+  node->instruction()->accept(this, lvl + 2);
   _pf.JMP(mklbl(lbl1));
   _pf.LABEL(mklbl(lbl2));
 }
@@ -274,4 +278,71 @@ void til::postfix_writer::do_if_else_node(til::if_else_node * const node, int lv
   _pf.LABEL(mklbl(lbl1));
   node->elseblock()->accept(this, lvl + 2);
   _pf.LABEL(mklbl(lbl1 = lbl2));
+}
+
+//---------------------------------------------------------------------------
+void til::postfix_writer::do_nullptr_node(til::nullptr_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}
+
+//---------------------------------------------------------------------------
+void til::postfix_writer::do_stop_node(til::stop_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}
+
+//---------------------------------------------------------------------------
+void til::postfix_writer::do_next_node(til::next_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}
+
+//---------------------------------------------------------------------------
+void til::postfix_writer::do_return_node(til::return_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}
+
+//---------------------------------------------------------------------------
+void til::postfix_writer::do_declaration_node(til::declaration_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}
+
+//---------------------------------------------------------------------------
+void til::postfix_writer::do_block_node(til::block_node * const node, int lvl) {
+  // TODO: implement this
+  node->instructions()->accept(this, lvl);
+}
+
+//---------------------------------------------------------------------------
+void til::postfix_writer::do_function_call_node(til::function_call_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}
+
+
+//---------------------------------------------------------------------------
+void til::postfix_writer::do_objects_operator_node(til::objects_operator_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}
+
+//---------------------------------------------------------------------------
+void til::postfix_writer::do_sizeof_operator_node(til::sizeof_operator_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}
+
+//---------------------------------------------------------------------------
+void til::postfix_writer::do_referencing_operator_node(til::referencing_operator_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
+}
+
+//---------------------------------------------------------------------------
+void til::postfix_writer::do_pointer_indexing_node(til::pointer_indexing_node * const node, int lvl) {
+  // TODO: implement this
+  throw "not implemented";
 }
