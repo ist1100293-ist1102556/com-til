@@ -133,7 +133,7 @@ void til::xml_writer::do_assignment_node(cdk::assignment_node * const node, int 
 
 void til::xml_writer::do_function_node(til::function_node * const node, int lvl) {
   openTag(node, lvl);
-  node->block()->accept(this, lvl + 4);
+  node->instructions()->accept(this, lvl + 4);
   closeTag(node, lvl);
 }
 
