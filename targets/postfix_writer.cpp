@@ -183,7 +183,7 @@ void til::postfix_writer::do_function_node(til::function_node * const node, int 
     _pf.LABEL("_main");
     _pf.ENTER(0);  // Simple doesn't implement local variables
 
-    node->block()->accept(this, lvl);
+    node->instructions()->accept(this, lvl);
 
     // end the main function
     _pf.INT(0);
@@ -313,7 +313,7 @@ void til::postfix_writer::do_declaration_node(til::declaration_node * const node
 //---------------------------------------------------------------------------
 void til::postfix_writer::do_block_node(til::block_node * const node, int lvl) {
   // TODO: implement this
-  node->instructions()->accept(this, lvl);
+  throw "not implemented";
 }
 
 //---------------------------------------------------------------------------
