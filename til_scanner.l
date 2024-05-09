@@ -36,7 +36,9 @@ EXP [Ee][+-]?[0-9]+
 ">="                   return tGE; 
 "<="                   return tLE; 
 "=="                   return tEQ; 
-"!="                   return tNE; 
+"!="                   return tNE;
+"&&"                   return tAND;
+"||"                   return tOR;
 
 "int"                  return tINT;
 "double"               return tDOUBLE;
@@ -120,7 +122,7 @@ EXP [Ee][+-]?[0-9]+
 \.[0-9]+{EXP}?         PROCESS_DOUBLE;
 [0-9]+{EXP}            PROCESS_DOUBLE;
 
-[-()<>=+*/%;{}.]       return *yytext;
+[+-?*/%<>~()!]         return *yytext;
 
 [ \t\n]+               ; /* ignore whitespace */
 
