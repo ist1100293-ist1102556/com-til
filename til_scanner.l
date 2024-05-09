@@ -122,7 +122,7 @@ EXP [Ee][+-]?[0-9]+
 \.[0-9]+{EXP}?         PROCESS_DOUBLE;
 [0-9]+{EXP}            PROCESS_DOUBLE;
 
-[+-?*/%<>~()!]         return *yytext;
+[+-?*/%<>~()!@]         return *yytext;
 
 [ \t\n]+               ; /* ignore whitespace */
 
