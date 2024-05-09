@@ -25,7 +25,7 @@ namespace til {
       }
 
 
-    function_node(int line_no, cdk::sequence_node *instructions) : cdk::expression_node(line_no), _instructions(instructions), _is_main(true) {
+    function_node(int line_no, cdk::sequence_node *declarations, cdk::sequence_node *instructions) : cdk::expression_node(line_no), _declarations(declarations), _instructions(instructions), _is_main(true) {
       type(cdk::functional_type::create(cdk::primitive_type::create(4, cdk::TYPE_INT)));
     }
 

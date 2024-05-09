@@ -31,6 +31,8 @@
   cdk::sequence_node   *sequence;
   cdk::expression_node *expression; /* expression nodes */
   cdk::lvalue_node     *lvalue;
+  std::vector<std::shared_ptr<cdk::basic_type>> *types;
+  til::declaration_node *declaration;
 };
 
 %token <i> tINTLIT
@@ -44,30 +46,47 @@
 %token tGE tLE tEQ tNE tAND tOR
 
 %type <node> stmt program
-%type <sequence> list exprs
+%type <sequence> list exprs declarations
 %type <expression> expr
 %type <lvalue> lval
+%type <types> types
+%type <type> type function_type
+%type <declaration> declaration
+%type <i> qualifier
+
 
 %{
 //-- The rules below will be included in yyparse, the main parsing function.
 %}
 %%
 
-program : '(' list ')' { compiler->ast(new til::function_node(LINE, $2)); }
+program : '(' tPROGRAM declarations list ')' { compiler->ast(new til::function_node(LINE, $3, $4)); }
         ;
 
 list : stmt      { $$ = new cdk::sequence_node(LINE, $1); }
      | list stmt { $$ = new cdk::sequence_node(LINE, $2, $1); }
      ;
 
-stmt : expr ';'                         { $$ = new til::evaluation_node(LINE, $1); }
-     | tPRINT expr ';'                  { $$ = new til::print_node(LINE, new cdk::sequence_node(LINE, $2), true); }
-     | tREAD lval ';'                   { $$ = new cdk::assignment_node(LINE, $2, new til::read_node(LINE));}
-     | tLOOP '(' expr ')' stmt         { $$ = new til::loop_node(LINE, $3, $5); }
-     | tIF '(' expr ')' stmt { $$ = new til::if_node(LINE, $3, $5); }
-     | tIF '(' expr ')' stmt stmt { $$ = new til::if_else_node(LINE, $3, $5, $6); }
-     | '{' list '}'                     { $$ = $2; }
+stmt : '(' expr ')'                     { $$ = new til::evaluation_node(LINE, $2); }
      ;
+
+qualifier : tEXTERNAL                   { $$ = 2; }
+          | tFORWARD                    { $$ = 3; }
+          ; 
+
+declarations : declaration                   { $$ = new cdk::sequence_node(LINE, $1); }
+             | declarations declaration      { $$ = new cdk::sequence_node(LINE, $2, $1); }
+             ;
+
+declaration : type tIDENTIFIER                { $$ = new til::declaration_node(LINE, 0, $1, *$2, nullptr); delete $2;}
+            | type tIDENTIFIER expr           { $$ = new til::declaration_node(LINE, 0, $1, *$2, $3); delete $2;}
+            | qualifier type tIDENTIFIER      { $$ = new til::declaration_node(LINE, $1, $2, *$3, nullptr); delete $3;}
+            | tPUBLIC type tIDENTIFIER        { $$ = new til::declaration_node(LINE, 1, $2, *$3, nullptr); delete $3;}
+            | tPUBLIC type tIDENTIFIER expr   { $$ = new til::declaration_node(LINE, 1, $2, *$3, $4); delete $3;}
+            | tVAR tIDENTIFIER expr           { $$ = new til::declaration_node(LINE, 0, nullptr, *$2, $3); delete $2;}
+            | tPUBLIC tIDENTIFIER expr        { $$ = new til::declaration_node(LINE, 1, nullptr, *$2, $3); delete $2;}
+            | tPUBLIC tVAR tIDENTIFIER expr   { $$ = new til::declaration_node(LINE, 1, nullptr, *$3, $4); delete $3;}
+            ;
 
 exprs : expr                      { $$ = new cdk::sequence_node(LINE, $1); }
       | exprs expr                { $$ = new cdk::sequence_node(LINE, $2, $1); }
@@ -103,6 +122,22 @@ expr : tINTLIT               { $$ = new cdk::integer_node(LINE, $1); }
      | '(' expr exprs ')'          { $$ = new til::function_call_node(LINE, $2, $3); }
      | '(' '@' exprs ')'           { $$ = new til::function_call_node(LINE, nullptr, $3); }
      ;
+
+type : tINT                        { $$ = cdk::primitive_type::create(4, cdk::TYPE_INT); }
+     | tDOUBLE                     { $$ = cdk::primitive_type::create(8, cdk::TYPE_DOUBLE); }
+     | tSTRING                     { $$ = cdk::primitive_type::create(4, cdk::TYPE_STRING); }
+     | tVOID                       { $$ = cdk::primitive_type::create(0, cdk::TYPE_VOID); }
+     | type '!'                    { $$ = cdk::reference_type::create(4, $1); }
+     | function_type               { $$ = $1;}
+     ;
+
+types : type                       { $$ = new std::vector<std::shared_ptr<cdk::basic_type>>(); $$->push_back($1); }
+      | types type                 { $$ = $1; $$->push_back($2);}
+      ;
+
+function_type : '(' type ')'                 { $$ = cdk::functional_type::create($2);}
+              | '(' type '(' types  ')' ')'   { $$ = cdk::functional_type::create(*$4, $2);}
+              ;
 
 lval : tIDENTIFIER             { $$ = new cdk::variable_node(LINE, $1); }
      | '(' tINDEX expr expr ')' { $$ = new til::pointer_indexing_node(LINE, $3, $4); }
