@@ -14,7 +14,7 @@
 #define PROCESS_DOUBLE { \
   try { \
     yylval.d = std::stod(yytext, nullptr); \
-    return tDOUBLE; \
+    return tDOUBLELIT; \
   } catch (const std::out_of_range &e) { \
     yyerror("double out of range"); \
   } \
@@ -38,20 +38,40 @@ EXP [Ee][+-]?[0-9]+
 "=="                   return tEQ; 
 "!="                   return tNE; 
 
-"while"                return tWHILE; 
-"if"                   return tIF; 
-"else"                 return tELSE; 
-"print"                return tPRINT; 
-"read"                 return tREAD; 
-"begin"                return tBEGIN; 
-"end"                  return tEND; 
+"int"                  return tINT;
+"double"               return tDOUBLE;
+"string"               return tSTRING;
+"void"                 return tVOID;
 
+"external"             return tEXTERNAL;
+"forward"              return tFORWARD;
+"public"               return tPUBLIC;
+"var"                  return tVAR;
+
+"block"                return tBLOCK;
+"if"                   return tIF; 
+"loop"                 return tLOOP;
+"stop"                 return tSTOP;
+"next"                 return tNEXT;
+"return"               return tRETURN;
+"print"                return tPRINT; 
+"println"              return tPRINTLN;
+
+"read"                 return tREAD;
 "null"                 return tNULL;
+"set"                  return tSET;
+"index"                return tINDEX;
+"objects"              return tOBJECTS;
+"sizeof"               return tSIZEOF;
+"function"             return tFUNCTION;
+
+"program"              return tPROGRAM;
+
 
 [A-Za-z][A-Za-z0-9_]*  yylval.s = new std::string(yytext); return tIDENTIFIER;
 
 \"                     yy_push_state(X_STRING); yylval.s = new std::string("");
-<X_STRING>\"           yy_pop_state(); return tSTRING;
+<X_STRING>\"           yy_pop_state(); return tSTRINGLIT;
 <X_STRING>\\\"         *yylval.s += '\"';
 <X_STRING>\\\\         *yylval.s += '\\';
 <X_STRING>\\n          *yylval.s += '\n';
@@ -70,7 +90,7 @@ EXP [Ee][+-]?[0-9]+
                        }
 <X_STRING>.            *yylval.s += yytext;
 
-<X_STRING_END>\"       yy_pop_state(); yy_pop_state(); return tSTRING;
+<X_STRING_END>\"       yy_pop_state(); yy_pop_state(); return tSTRINGLIT;
 <X_STRING_END>\\\"     ;
 <X_STRING_END>\\\\     ;
 <X_STRING_END>\n       yyerror("newline in string");
@@ -80,7 +100,7 @@ EXP [Ee][+-]?[0-9]+
 0|[1-9][0-9]*          {
                         try {
                           yylval.i = std::stoi(yytext, nullptr, 10);
-                          return tINTEGER;
+                          return tINTLIT;
                         } catch (const std::out_of_range &e) {
                           yyerror("integer out of range");
                         }
@@ -89,7 +109,7 @@ EXP [Ee][+-]?[0-9]+
 0x[0-9A-Fa-f]+         {
                         try {
                           yylval.i = std::stoi(yytext, nullptr, 16);
-                          return tINTEGER;
+                          return tINTLIT;
                         } catch (const std::out_of_range &e) {
                           yyerror("integer out of range");
                         }

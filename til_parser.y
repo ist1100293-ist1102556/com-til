@@ -33,13 +33,14 @@
   cdk::lvalue_node     *lvalue;
 };
 
-%token <i> tINTEGER
-%token <d> tDOUBLE
-%token <s> tIDENTIFIER tSTRING
-%token tWHILE tIF tPRINT tREAD tBEGIN tEND tNULL
-
-%nonassoc tIFX
-%nonassoc tELSE
+%token <i> tINTLIT
+%token <d> tDOUBLELIT
+%token <s> tIDENTIFIER tSTRINGLIT
+%token tINT tDOUBLE tSTRING tVOID
+%token tEXTERNAL tFORWARD tPUBLIC tVAR
+%token tBLOCK tIF tLOOP tSTOP tNEXT tRETURN tPRINT tPRINTLN
+%token tREAD tNULL tSET tINDEX tOBJECTS tSIZEOF tFUNCTION
+%token tPROGRAM
 
 %right '='
 %left tGE tLE tEQ tNE '>' '<'
@@ -57,7 +58,7 @@
 %}
 %%
 
-program : tBEGIN list tEND { compiler->ast(new til::function_node(LINE, $2)); }
+program : '(' list ')' { compiler->ast(new til::function_node(LINE, $2)); }
         ;
 
 list : stmt      { $$ = new cdk::sequence_node(LINE, $1); }
@@ -67,14 +68,14 @@ list : stmt      { $$ = new cdk::sequence_node(LINE, $1); }
 stmt : expr ';'                         { $$ = new til::evaluation_node(LINE, $1); }
      | tPRINT expr ';'                  { $$ = new til::print_node(LINE, new cdk::sequence_node(LINE, $2), true); }
      | tREAD lval ';'                   { $$ = new cdk::assignment_node(LINE, $2, new til::read_node(LINE));}
-     | tWHILE '(' expr ')' stmt         { $$ = new til::loop_node(LINE, $3, $5); }
+     | tLOOP '(' expr ')' stmt         { $$ = new til::loop_node(LINE, $3, $5); }
      | tIF '(' expr ')' stmt %prec tIFX { $$ = new til::if_node(LINE, $3, $5); }
-     | tIF '(' expr ')' stmt tELSE stmt { $$ = new til::if_else_node(LINE, $3, $5, $7); }
+     | tIF '(' expr ')' stmt stmt { $$ = new til::if_else_node(LINE, $3, $5, $6); }
      | '{' list '}'                     { $$ = $2; }
      ;
 
-expr : tINTEGER              { $$ = new cdk::integer_node(LINE, $1); }
-     | tSTRING               { $$ = new cdk::string_node(LINE, $1); }
+expr : tINTLIT               { $$ = new cdk::integer_node(LINE, $1); }
+     | tSTRINGLIT            { $$ = new cdk::string_node(LINE, $1); }
      | '-' expr %prec tUNARY { $$ = new cdk::unary_minus_node(LINE, $2); }
      | '+' expr %prec tUNARY { $$ = new cdk::unary_plus_node(LINE, $2); }
      | expr '+' expr         { $$ = new cdk::add_node(LINE, $1, $3); }
