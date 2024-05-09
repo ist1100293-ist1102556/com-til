@@ -46,6 +46,8 @@ EXP [Ee][+-]?[0-9]+
 "begin"                return tBEGIN; 
 "end"                  return tEND; 
 
+"null"                 return tNULL;
+
 [A-Za-z][A-Za-z0-9_]*  yylval.s = new std::string(yytext); return tIDENTIFIER;
 
 \"                     yy_push_state(X_STRING); yylval.s = new std::string("");

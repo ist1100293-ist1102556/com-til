@@ -36,7 +36,7 @@
 %token <i> tINTEGER
 %token <d> tDOUBLE
 %token <s> tIDENTIFIER tSTRING
-%token tWHILE tIF tPRINT tREAD tBEGIN tEND
+%token tWHILE tIF tPRINT tREAD tBEGIN tEND tNULL
 
 %nonassoc tIFX
 %nonassoc tELSE
