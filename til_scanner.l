@@ -63,7 +63,23 @@
 <X_STRING_END>\0       yyerror("null character in string");
 <X_STRING_END>.        ;
 
-[0-9]+                 yylval.i = strtol(yytext, nullptr, 10); return tINTEGER;
+0|[1-9][0-9]*          {
+                        try {
+                          yylval.i = std::stoi(yytext, nullptr, 10);
+                          return tINTEGER;
+                        } catch (const std::out_of_range &e) {
+                          yyerror("integer out of range");
+                        }
+                       }
+
+0x[0-9A-Fa-f]+         {
+                        try {
+                          yylval.i = std::stoi(yytext, nullptr, 16);
+                          return tINTEGER;
+                        } catch (const std::out_of_range &e) {
+                          yyerror("integer out of range");
+                        }
+                       }
 
 [-()<>=+*/%;{}.]       return *yytext;
 
