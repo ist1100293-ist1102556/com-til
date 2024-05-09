@@ -10,7 +10,19 @@
 
 // don't change this
 #define yyerror LexerError
+
+#define PROCESS_DOUBLE { \
+  try { \
+    yylval.d = std::stod(yytext, nullptr); \
+    return tDOUBLE; \
+  } catch (const std::out_of_range &e) { \
+    yyerror("double out of range"); \
+  } \
+} \
+
 %}
+EXP [Ee][+-]?[0-9]+
+
 %x X_STRING X_COMMENT X_STRING_END
 %%
   yydebug=1; set_debug(1);
@@ -80,6 +92,11 @@
                           yyerror("integer out of range");
                         }
                        }
+
+[0-9]+\.[0-9]+{EXP}?   PROCESS_DOUBLE;
+[0-9]+\.{EXP}?         PROCESS_DOUBLE;
+\.[0-9]+{EXP}?         PROCESS_DOUBLE;
+[0-9]+{EXP}            PROCESS_DOUBLE;
 
 [-()<>=+*/%;{}.]       return *yytext;
 
