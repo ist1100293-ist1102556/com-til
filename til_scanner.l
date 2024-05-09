@@ -11,7 +11,7 @@
 // don't change this
 #define yyerror LexerError
 %}
-%x X_STRING X_COMMENT
+%x X_STRING X_COMMENT X_STRING_END
 %%
   yydebug=1; set_debug(1);
 
@@ -36,11 +36,32 @@
 
 [A-Za-z][A-Za-z0-9_]*  yylval.s = new std::string(yytext); return tIDENTIFIER;
 
-\'                     yy_push_state(X_STRING); yylval.s = new std::string("");
-<X_STRING>\'           yy_pop_state(); return tSTRING;
-<X_STRING>\\\'         *yylval.s += yytext + 1;
-<X_STRING>.            *yylval.s += yytext;
+\"                     yy_push_state(X_STRING); yylval.s = new std::string("");
+<X_STRING>\"           yy_pop_state(); return tSTRING;
+<X_STRING>\\\"         *yylval.s += '\"';
+<X_STRING>\\\\         *yylval.s += '\\';
+<X_STRING>\\n          *yylval.s += '\n';
+<X_STRING>\\t          *yylval.s += '\t';
+<X_STRING>\\r          *yylval.s += '\r';
+<X_STRING>\\0          yy_push_state(X_STRING_END);
 <X_STRING>\n           yyerror("newline in string");
+<X_STRING>\0           yyerror("null character in string");
+<X_STRING>\\[0-7]{1,3} {
+                         int n = std::stoi(yytext+1, nullptr, 8);
+                         if (n > 255) yyerror("invalid 8 bit character");
+                         if (n == 0)
+                            yy_push_state(X_STRING_END);
+                         else
+                            *yylval.s += (char) n;
+                       }
+<X_STRING>.            *yylval.s += yytext;
+
+<X_STRING_END>\"       yy_pop_state(); yy_pop_state(); return tSTRING;
+<X_STRING_END>\\\"     ;
+<X_STRING_END>\\\\     ;
+<X_STRING_END>\n       yyerror("newline in string");
+<X_STRING_END>\0       yyerror("null character in string");
+<X_STRING_END>.        ;
 
 [0-9]+                 yylval.i = strtol(yytext, nullptr, 10); return tINTEGER;
 
