@@ -13,7 +13,7 @@ namespace til {
     bool _is_main;
 
   public:
-    function_node(int line_no, std::shared_ptr<cdk::basic_type> return_type, cdk::sequence_node *arguments, cdk::sequence_node *declarations, cdk::sequence_node *instructions, bool is_main) :
+    function_node(int line_no, std::shared_ptr<cdk::basic_type> return_type, cdk::sequence_node *arguments, cdk::sequence_node *declarations, cdk::sequence_node *instructions) :
       cdk::expression_node(line_no), _arguments(arguments), _declarations(declarations), _instructions(instructions), _is_main(false) {
         std::vector<std::shared_ptr<cdk::basic_type>> arg_types;
 
@@ -25,7 +25,7 @@ namespace til {
       }
 
 
-    function_node(int line_no, cdk::sequence_node *instructions) : cdk::expression_node(line_no), _instructions(instructions), _is_main(true) {
+    function_node(int line_no, cdk::sequence_node *declarations, cdk::sequence_node *instructions) : cdk::expression_node(line_no), _declarations(declarations), _instructions(instructions), _is_main(true) {
       type(cdk::functional_type::create(cdk::primitive_type::create(4, cdk::TYPE_INT)));
     }
 
