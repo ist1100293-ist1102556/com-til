@@ -26,14 +26,33 @@ namespace til {
     void openTag(const std::string &tag, int lvl) {
       os() << std::string(lvl, ' ') + "<" + tag + ">" << std::endl;
     }
-    void openTag(const cdk::basic_node *node, int lvl) {
-      openTag(node->label(), lvl);
+    void openTag(const cdk::basic_node *node, int lvl, const std::map<std::string, std::string> &attrs = std::map<std::string, std::string>()) {
+      os() << std::string(lvl, ' ') << "<" << node->label();
+      for (const auto &attr : attrs) {
+        os() << " " << attr.first << "='" << attr.second << "'";
+      }
+      os() << ">" << std::endl;
     }
     void closeTag(const std::string &tag, int lvl) {
       os() << std::string(lvl, ' ') + "</" + tag + ">" << std::endl;
     }
     void closeTag(const cdk::basic_node *node, int lvl) {
       closeTag(node->label(), lvl);
+    }
+
+    void emptyTag(const cdk::basic_node *node, int lvl, const std::map<std::string, std::string> &attrs = std::map<std::string, std::string>()) {
+      os() << std::string(lvl, ' ') << "<" << node->label();
+      for (const auto &attr : attrs) {
+        os() << " " << attr.first << "='" << attr.second << "'";
+      }
+      os() << "/>" << std::endl;
+    }
+    void emptyTag(const std::string &tag, int lvl, const std::map<std::string, std::string> &attrs = std::map<std::string, std::string>()) {
+      os() << std::string(lvl, ' ') << "<" << tag;
+      for (const auto &attr : attrs) {
+        os() << " " << attr.first << "='" << attr.second << "'";
+      }
+      os() << "/>" << std::endl;
     }
 
   protected:

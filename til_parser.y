@@ -172,7 +172,6 @@ expr : tINTLIT                     { $$ = new cdk::integer_node(LINE, $1); }
      | '(' tEQ expr expr ')'       { $$ = new cdk::eq_node(LINE, $3, $4); }
      | '(' tAND expr expr ')'      { $$ = new cdk::and_node(LINE, $3, $4); }
      | '(' tOR expr expr ')'       { $$ = new cdk::or_node(LINE, $3, $4); }
-     | '(' expr ')'                { $$ = $2; }
      | lval                        { $$ = new cdk::rvalue_node(LINE, $1); }
      | '(' tSET lval expr ')'      { $$ = new cdk::assignment_node(LINE, $3, $4); }
      | '(' tOBJECTS expr ')'       { $$ = new til::objects_operator_node(LINE, $3); }
@@ -180,7 +179,9 @@ expr : tINTLIT                     { $$ = new cdk::integer_node(LINE, $1); }
      | '(' '?' lval ')'            { $$ = new til::referencing_operator_node(LINE, $3);}
      | '(' tREAD ')'               { $$ = new til::read_node(LINE); }
      | function                    { $$ = $1; }
+     | '(' expr ')'                { $$ = new til::function_call_node(LINE, $2, new cdk::sequence_node(LINE)); }
      | '(' expr exprs ')'          { $$ = new til::function_call_node(LINE, $2, $3); }
+     | '(' '@' ')'                 { $$ = new til::function_call_node(LINE, nullptr, new cdk::sequence_node(LINE)); }
      | '(' '@' exprs ')'           { $$ = new til::function_call_node(LINE, nullptr, $3); }
      ;
 
