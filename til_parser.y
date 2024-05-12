@@ -33,6 +33,8 @@
   cdk::lvalue_node     *lvalue;
   std::vector<std::shared_ptr<cdk::basic_type>> *types;
   til::declaration_node *declaration;
+  til::block_node *block;
+  til::function_node *function;
 };
 
 %token <i> tINTLIT
@@ -45,48 +47,106 @@
 %token tPROGRAM
 %token tGE tLE tEQ tNE tAND tOR
 
-%type <node> stmt program
-%type <sequence> list exprs declarations
+%type <node> stmt program if_stmt loop_stmt
+%type <sequence> list exprs declarations global_declarations arg_declarations
 %type <expression> expr
 %type <lvalue> lval
 %type <types> types
 %type <type> type function_type
-%type <declaration> declaration
+%type <declaration> declaration global_declaration arg_declaration
 %type <i> qualifier
-
+%type <block> block
+%type <function> function
 
 %{
 //-- The rules below will be included in yyparse, the main parsing function.
 %}
 %%
 
-program : '(' tPROGRAM declarations list ')' { compiler->ast(new til::function_node(LINE, $3, $4)); }
+file : global_declarations program                  {compiler->ast(new cdk::sequence_node(LINE, $2, $1));}
+     | global_declarations                           {compiler->ast($1);}
+     | program                                      {compiler->ast(new cdk::sequence_node(LINE, $1));}
+     | /* empty */                                  {compiler->ast(new cdk::sequence_node(LINE));}
+     ;
+
+program : '(' tPROGRAM declarations list ')' { $$ = new til::function_node(LINE, $3, $4); }
+        | '(' tPROGRAM declarations ')'      { $$ = new til::function_node(LINE, $3, nullptr); }
+        | '(' tPROGRAM list ')'              { $$ = new til::function_node(LINE, nullptr, $3); }
+        | '(' tPROGRAM ')'                   { $$ = new til::function_node(LINE, nullptr, nullptr); }
         ;
+
+function : '(' tFUNCTION '(' type ')' declarations list ')'                  { $$ = new til::function_node(LINE, $4, nullptr, $6, $7); }
+         | '(' tFUNCTION '(' type ')' declarations ')'                       { $$ = new til::function_node(LINE, $4, nullptr, $6, nullptr); }
+         | '(' tFUNCTION '(' type ')' list ')'                               { $$ = new til::function_node(LINE, $4, nullptr, nullptr, $6); }
+         | '(' tFUNCTION '(' type ')' ')'                                    { $$ = new til::function_node(LINE, $4, nullptr, nullptr, nullptr); }
+         | '(' tFUNCTION '(' type arg_declarations ')' declarations list ')' { $$ = new til::function_node(LINE, $4, $5, $7, $8); }
+         | '(' tFUNCTION '(' type arg_declarations ')' declarations ')'      { $$ = new til::function_node(LINE, $4, $5, $7, nullptr); }
+         | '(' tFUNCTION '(' type arg_declarations ')' list ')'              { $$ = new til::function_node(LINE, $4, $5, nullptr, $7); }
+         | '(' tFUNCTION '(' type arg_declarations ')' ')'                   { $$ = new til::function_node(LINE, $4, $5, nullptr, nullptr); }
+         ;
 
 list : stmt      { $$ = new cdk::sequence_node(LINE, $1); }
      | list stmt { $$ = new cdk::sequence_node(LINE, $2, $1); }
      ;
 
-stmt : '(' expr ')'                     { $$ = new til::evaluation_node(LINE, $2); }
+stmt : expr                           { $$ = new til::evaluation_node(LINE, $1); }
+     | '(' tPRINT exprs ')'           { $$ = new til::print_node(LINE, $3, false); }
+     | '(' tPRINTLN exprs ')'         { $$ = new til::print_node(LINE, $3, true); }
+     | '(' tSTOP ')'                  { $$ = new til::stop_node(LINE, 1); }
+     | '(' tSTOP tINTLIT ')'          { $$ = new til::stop_node(LINE, $3); }
+     | '(' tNEXT ')'                  { $$ = new til::next_node(LINE, 1); }
+     | '(' tNEXT tINTLIT ')'          { $$ = new til::next_node(LINE, $3); }
+     | '(' tRETURN ')'                { $$ = new til::return_node(LINE, nullptr); }
+     | '(' tRETURN expr ')'           { $$ = new til::return_node(LINE, $3); }
+     | if_stmt                        { $$ = $1; }
+     | loop_stmt                      { $$ = $1; }
+     | block                          { $$ = $1; }
      ;
+
+if_stmt : '(' tIF expr stmt ')'       { $$ = new til::if_node(LINE, $3, $4); }
+        | '(' tIF expr stmt stmt ')'  { $$ = new til::if_else_node(LINE, $3, $4, $5); }
+        ;
+
+loop_stmt : '(' tLOOP expr stmt ')'       { $$ = new til::loop_node(LINE, $3, $4); }
+          ;
+
+block : '(' tBLOCK declarations list ')' { $$ = new til::block_node(LINE, $3, $4); }
+      | '(' tBLOCK declarations ')'      { $$ = new til::block_node(LINE, $3, nullptr); }
+      | '(' tBLOCK list ')'              { $$ = new til::block_node(LINE, nullptr, $3); }
+      | '(' tBLOCK ')'                   { $$ = new til::block_node(LINE, nullptr, nullptr); }
+      ;
 
 qualifier : tEXTERNAL                   { $$ = 2; }
           | tFORWARD                    { $$ = 3; }
           ; 
 
+global_declarations : global_declaration                     {$$ = new cdk::sequence_node(LINE, $1);}
+                    | global_declarations global_declaration {$$ = new cdk::sequence_node(LINE, $2, $1);}
+                    ;
+
+global_declaration : declaration                             { $$ = $1;}
+                   | '(' qualifier type tIDENTIFIER ')'      { $$ = new til::declaration_node(LINE, $2, $3, *$4, nullptr); delete $4;}
+                   | '(' tPUBLIC type tIDENTIFIER ')'        { $$ = new til::declaration_node(LINE, 1, $3, *$4, nullptr); delete $4;}
+                   | '(' tPUBLIC type tIDENTIFIER expr ')'   { $$ = new til::declaration_node(LINE, 1, $3, *$4, $5); delete $4;}
+                   | '(' tPUBLIC tIDENTIFIER expr ')'        { $$ = new til::declaration_node(LINE, 1, nullptr, *$3, $4); delete $3;}
+                   | '(' tPUBLIC tVAR tIDENTIFIER expr ')'   { $$ = new til::declaration_node(LINE, 1, nullptr, *$4, $5); delete $4;}
+                   ;
+
 declarations : declaration                   { $$ = new cdk::sequence_node(LINE, $1); }
              | declarations declaration      { $$ = new cdk::sequence_node(LINE, $2, $1); }
              ;
 
-declaration : type tIDENTIFIER                { $$ = new til::declaration_node(LINE, 0, $1, *$2, nullptr); delete $2;}
-            | type tIDENTIFIER expr           { $$ = new til::declaration_node(LINE, 0, $1, *$2, $3); delete $2;}
-            | qualifier type tIDENTIFIER      { $$ = new til::declaration_node(LINE, $1, $2, *$3, nullptr); delete $3;}
-            | tPUBLIC type tIDENTIFIER        { $$ = new til::declaration_node(LINE, 1, $2, *$3, nullptr); delete $3;}
-            | tPUBLIC type tIDENTIFIER expr   { $$ = new til::declaration_node(LINE, 1, $2, *$3, $4); delete $3;}
-            | tVAR tIDENTIFIER expr           { $$ = new til::declaration_node(LINE, 0, nullptr, *$2, $3); delete $2;}
-            | tPUBLIC tIDENTIFIER expr        { $$ = new til::declaration_node(LINE, 1, nullptr, *$2, $3); delete $2;}
-            | tPUBLIC tVAR tIDENTIFIER expr   { $$ = new til::declaration_node(LINE, 1, nullptr, *$3, $4); delete $3;}
+declaration : '(' type tIDENTIFIER ')'                { $$ = new til::declaration_node(LINE, 0, $2, *$3, nullptr); delete $3;}
+            | '(' type tIDENTIFIER expr ')'           { $$ = new til::declaration_node(LINE, 0, $2, *$3, $4); delete $3;}
+            | '(' tVAR tIDENTIFIER expr ')'           { $$ = new til::declaration_node(LINE, 0, nullptr, *$3, $4); delete $3;}
             ;
+
+arg_declarations : arg_declaration                   { $$ = new cdk::sequence_node(LINE, $1); }
+                 | arg_declarations arg_declaration  { $$ = new cdk::sequence_node(LINE, $2, $1); }
+                 ;
+
+arg_declaration : '(' type tIDENTIFIER ')'           { $$ = new til::declaration_node(LINE, 0, $2, *$3, nullptr); delete $3;}
+                ; 
 
 exprs : expr                      { $$ = new cdk::sequence_node(LINE, $1); }
       | exprs expr                { $$ = new cdk::sequence_node(LINE, $2, $1); }
@@ -119,6 +179,7 @@ expr : tINTLIT               { $$ = new cdk::integer_node(LINE, $1); }
      | '(' tSIZEOF expr ')'        { $$ = new til::sizeof_operator_node(LINE, $3); }
      | '(' '?' lval ')'            { $$ = new til::referencing_operator_node(LINE, $3);}
      | '(' tREAD ')'               { $$ = new til::read_node(LINE); }
+     | function                    { $$ = $1; }
      | '(' expr exprs ')'          { $$ = new til::function_call_node(LINE, $2, $3); }
      | '(' '@' exprs ')'           { $$ = new til::function_call_node(LINE, nullptr, $3); }
      ;
