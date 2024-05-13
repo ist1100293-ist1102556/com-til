@@ -49,7 +49,7 @@
 
 %type <node> stmt program if_stmt loop_stmt
 %type <sequence> list exprs declarations global_declarations arg_declarations
-%type <expression> expr
+%type <expression> expr global_initializer
 %type <lvalue> lval
 %type <types> types
 %type <type> type function_type return_type
@@ -119,13 +119,15 @@ global_declarations : global_declaration                     {$$ = new cdk::sequ
                     | global_declarations global_declaration {$$ = new cdk::sequence_node(LINE, $2, $1);}
                     ;
 
-global_declaration : declaration                             { $$ = $1;}
-                   | '(' tPUBLIC type tIDENTIFIER ')'        { $$ = new til::declaration_node(LINE, 1, $3, *$4, nullptr); delete $4;}
-                   | '(' tPUBLIC type tIDENTIFIER expr ')'   { $$ = new til::declaration_node(LINE, 1, $3, *$4, $5); delete $4;}
-                   | '(' tPUBLIC tIDENTIFIER expr ')'        { $$ = new til::declaration_node(LINE, 1, nullptr, *$3, $4); delete $3;}
-                   | '(' tPUBLIC tVAR tIDENTIFIER expr ')'   { $$ = new til::declaration_node(LINE, 1, nullptr, *$4, $5); delete $4;}
-                   | '(' tEXTERNAL type tIDENTIFIER ')'      { $$ = new til::declaration_node(LINE, 2, $3, *$4, nullptr); delete $4;}
-                   | '(' tFORWARD type tIDENTIFIER ')'      { $$ = new til::declaration_node(LINE, 3, $3, *$4, nullptr); delete $4;}
+global_declaration : '(' type tIDENTIFIER ')'                              { $$ = new til::declaration_node(LINE, 0, $2, *$3, nullptr); delete $3;}
+                   | '(' type tIDENTIFIER global_initializer ')'           { $$ = new til::declaration_node(LINE, 0, $2, *$3, $4); delete $3;}
+                   | '(' tVAR tIDENTIFIER global_initializer ')'           { $$ = new til::declaration_node(LINE, 0, nullptr, *$3, $4); delete $3;}
+                   | '(' tPUBLIC type tIDENTIFIER ')'                      { $$ = new til::declaration_node(LINE, 1, $3, *$4, nullptr); delete $4;}
+                   | '(' tPUBLIC type tIDENTIFIER global_initializer ')'   { $$ = new til::declaration_node(LINE, 1, $3, *$4, $5); delete $4;}
+                   | '(' tPUBLIC tIDENTIFIER global_initializer ')'        { $$ = new til::declaration_node(LINE, 1, nullptr, *$3, $4); delete $3;}
+                   | '(' tPUBLIC tVAR tIDENTIFIER global_initializer ')'   { $$ = new til::declaration_node(LINE, 1, nullptr, *$4, $5); delete $4;}
+                   | '(' tEXTERNAL type tIDENTIFIER ')'                    { $$ = new til::declaration_node(LINE, 2, $3, *$4, nullptr); delete $4;}
+                   | '(' tFORWARD type tIDENTIFIER ')'                     { $$ = new til::declaration_node(LINE, 3, $3, *$4, nullptr); delete $4;}
                    ;
 
 declarations : declaration                   { $$ = new cdk::sequence_node(LINE, $1); }
@@ -143,6 +145,13 @@ arg_declarations : arg_declaration                   { $$ = new cdk::sequence_no
 
 arg_declaration : '(' type tIDENTIFIER ')'           { $$ = new til::declaration_node(LINE, 0, $2, *$3, nullptr); delete $3;}
                 ; 
+
+global_initializer : tINTLIT      { $$ = new cdk::integer_node(LINE, $1); }
+                   | tDOUBLELIT   { $$ = new cdk::double_node(LINE, $1); }
+                   | tSTRINGLIT   { $$ = new cdk::string_node(LINE, $1); delete $1;}
+                   | tNULL        { $$ = new til::nullptr_node(LINE); }
+                   | function     { $$ = $1; }
+                   ;
 
 exprs : expr                      { $$ = new cdk::sequence_node(LINE, $1); }
       | exprs expr                { $$ = new cdk::sequence_node(LINE, $2, $1); }
