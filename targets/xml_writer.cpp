@@ -265,8 +265,18 @@ void til::xml_writer::do_return_node(til::return_node * const node, int lvl) {
 void til::xml_writer::do_declaration_node(til::declaration_node * const node, int lvl) {
   std::map<std::string, std::string> attrs;
 
-  if (node->qualifier() != 0) {
-    attrs["qualifier"] = std::to_string(node->qualifier());
+  switch (node->qualifier()) {
+    case 1:
+      attrs["qualifier"] = "public";
+      break;
+    case 2:
+      attrs["qualifier"] = "external";
+      break;
+    case 3:
+      attrs["qualifier"] = "forward";
+      break;
+    default:
+      break;
   }
 
   if (node->type() != nullptr) {
@@ -277,13 +287,13 @@ void til::xml_writer::do_declaration_node(til::declaration_node * const node, in
 
   attrs["identifier"] = node->identifier();
   
-  openTag(node, lvl, attrs);
-
   if (node->initial() != nullptr) {
+    openTag(node, lvl, attrs);
     node->initial()->accept(this, lvl + 2);
+    closeTag(node, lvl);
+  } else {
+    emptyTag(node, lvl, attrs);
   }
-
-  closeTag(node, lvl);
 }
 
 //---------------------------------------------------------------------------
