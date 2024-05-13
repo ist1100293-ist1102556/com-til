@@ -272,7 +272,7 @@ void til::xml_writer::do_declaration_node(til::declaration_node * const node, in
   if (node->type() != nullptr) {
     attrs["type"] = node->type()->to_string();
   } else {
-    attrs["type"] = "infered";
+    attrs["type"] = "inferred";
   }
 
   attrs["identifier"] = node->identifier();
