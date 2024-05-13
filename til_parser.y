@@ -54,7 +54,6 @@
 %type <types> types
 %type <type> type function_type return_type
 %type <declaration> declaration global_declaration arg_declaration
-%type <i> qualifier
 %type <block> block
 %type <function> function
 
@@ -116,20 +115,17 @@ block : '(' tBLOCK declarations list ')' { $$ = new til::block_node(LINE, $3, $4
       | '(' tBLOCK ')'                   { $$ = new til::block_node(LINE, new cdk::sequence_node(LINE), new cdk::sequence_node(LINE)); }
       ;
 
-qualifier : tEXTERNAL                   { $$ = 2; }
-          | tFORWARD                    { $$ = 3; }
-          ; 
-
 global_declarations : global_declaration                     {$$ = new cdk::sequence_node(LINE, $1);}
                     | global_declarations global_declaration {$$ = new cdk::sequence_node(LINE, $2, $1);}
                     ;
 
 global_declaration : declaration                             { $$ = $1;}
-                   | '(' qualifier type tIDENTIFIER ')'      { $$ = new til::declaration_node(LINE, $2, $3, *$4, nullptr); delete $4;}
                    | '(' tPUBLIC type tIDENTIFIER ')'        { $$ = new til::declaration_node(LINE, 1, $3, *$4, nullptr); delete $4;}
                    | '(' tPUBLIC type tIDENTIFIER expr ')'   { $$ = new til::declaration_node(LINE, 1, $3, *$4, $5); delete $4;}
                    | '(' tPUBLIC tIDENTIFIER expr ')'        { $$ = new til::declaration_node(LINE, 1, nullptr, *$3, $4); delete $3;}
                    | '(' tPUBLIC tVAR tIDENTIFIER expr ')'   { $$ = new til::declaration_node(LINE, 1, nullptr, *$4, $5); delete $4;}
+                   | '(' tEXTERNAL type tIDENTIFIER ')'      { $$ = new til::declaration_node(LINE, 2, $3, *$4, nullptr); delete $4;}
+                   | '(' tFORWARD type tIDENTIFIER ')'      { $$ = new til::declaration_node(LINE, 3, $3, *$4, nullptr); delete $4;}
                    ;
 
 declarations : declaration                   { $$ = new cdk::sequence_node(LINE, $1); }
