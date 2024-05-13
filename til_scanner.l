@@ -107,6 +107,7 @@ EXP [Ee][+-]?[0-9]+
                           yyerror("integer out of range");
                         }
                        }
+0[0-9]+                yyerror("invalid integer");
 
 0x[0-9A-Fa-f]+         {
                         try {
@@ -116,7 +117,9 @@ EXP [Ee][+-]?[0-9]+
                           yyerror("integer out of range");
                         }
                        }
+0x[0-9A-Za-z]+         yyerror("invalid hex integer");
 
+[0-9]+\.[0-9]+{EXP}    PROCESS_DOUBLE;
 [0-9]+\.[0-9]+{EXP}?   PROCESS_DOUBLE;
 [0-9]+\.{EXP}?         PROCESS_DOUBLE;
 \.[0-9]+{EXP}?         PROCESS_DOUBLE;
