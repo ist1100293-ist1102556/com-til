@@ -119,7 +119,6 @@ EXP [Ee][+-]?[0-9]+
                        }
 0x[0-9A-Za-z]+         yyerror("invalid hex integer");
 
-[0-9]+\.[0-9]+{EXP}    PROCESS_DOUBLE;
 [0-9]+\.[0-9]+{EXP}?   PROCESS_DOUBLE;
 [0-9]+\.{EXP}?         PROCESS_DOUBLE;
 \.[0-9]+{EXP}?         PROCESS_DOUBLE;
