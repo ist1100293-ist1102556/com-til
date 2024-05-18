@@ -38,6 +38,9 @@ namespace til {
       return oss.str();
     }
 
+    void ID_operation(cdk::binary_operation_node *node, int lvl);
+    void PID_operation(cdk::binary_operation_node *node, int lvl);
+
   public:
   // do not edit these lines
 #define __IN_VISITOR_HEADER__

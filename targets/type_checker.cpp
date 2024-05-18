@@ -69,13 +69,54 @@ void til::type_checker::do_unary_plus_node(cdk::unary_plus_node *const node, int
 
 void til::type_checker::processBinaryExpression(cdk::binary_operation_node *const node, int lvl) {
   ASSERT_UNSPEC;
-  node->left()->accept(this, lvl + 2);
-  if (!node->left()->is_typed(cdk::TYPE_INT)) throw std::string("wrong type in left argument of binary expression");
 
-  node->right()->accept(this, lvl + 2);
-  if (!node->right()->is_typed(cdk::TYPE_INT)) throw std::string("wrong type in right argument of binary expression");
+  node->left()->accept(this, lvl);
+  node->right()->accept(this, lvl);
 
-  // in Simple, expressions are always int
+  if (node->left()->is_typed(cdk::TYPE_INT) && node->right()->is_typed(cdk::TYPE_INT)) {
+    node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+  } else if (node->left()->is_typed(cdk::TYPE_DOUBLE) && node->right()->is_typed(cdk::TYPE_DOUBLE)) {
+    node->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
+  } else {
+    node->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
+  }
+
+}
+
+void til::type_checker::ID_operation(cdk::binary_operation_node *node, int lvl) {
+  ASSERT_UNSPEC;
+
+  node->left()->accept(this, lvl);
+  node->right()->accept(this, lvl);
+
+  if (node->left()->is_typed(cdk::TYPE_INT) && node->right()->is_typed(cdk::TYPE_INT)) {
+    node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+  } else if (node->left()->is_typed(cdk::TYPE_DOUBLE) && node->right()->is_typed(cdk::TYPE_INT)) {
+    node->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
+  } else if (node->left()->is_typed(cdk::TYPE_INT) && node->right()->is_typed(cdk::TYPE_DOUBLE)) {
+    node->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
+  } else if (node->left()->is_typed(cdk::TYPE_DOUBLE) && node->right()->is_typed(cdk::TYPE_DOUBLE)) {
+    node->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
+  } else {
+    throw node->lineno() + "wrong types in arguments of binary expression";
+  }
+}
+
+void til::type_checker::PID_operation(cdk::binary_operation_node *node, int lvl) {
+  ASSERT_UNSPEC;
+
+  node->left()->accept(this, lvl);
+  if (!node->left()->is_typed(cdk::TYPE_INT) && !node->left()->is_typed(cdk::TYPE_POINTER)
+      && !node->left()->is_typed(cdk::TYPE_DOUBLE)) {
+    throw node->lineno() + "wrong type in left argument of binary expression";
+  }
+
+  node->right()->accept(this, lvl);
+  if (!node->right()->is_typed(cdk::TYPE_INT) && !node->right()->is_typed(cdk::TYPE_POINTER)
+      && !node->right()->is_typed(cdk::TYPE_DOUBLE)) {
+    throw node->lineno() + "wrong type in left argument of binary expression";
+  }
+
   node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
 }
 
@@ -86,25 +127,37 @@ void til::type_checker::do_sub_node(cdk::sub_node *const node, int lvl) {
   processBinaryExpression(node, lvl);
 }
 void til::type_checker::do_mul_node(cdk::mul_node *const node, int lvl) {
-  processBinaryExpression(node, lvl);
+  ID_operation(node, lvl);
 }
 void til::type_checker::do_div_node(cdk::div_node *const node, int lvl) {
-  processBinaryExpression(node, lvl);
+  ID_operation(node, lvl);
 }
 void til::type_checker::do_mod_node(cdk::mod_node *const node, int lvl) {
-  processBinaryExpression(node, lvl);
+  ASSERT_UNSPEC;
+
+  node->left()->accept(this, lvl);
+  if (!node->left()->is_typed(cdk::TYPE_INT)) {
+    throw node->left()->lineno() + "wrong type in left argument of mod expression";
+  }
+
+  node->right()->accept(this, lvl);
+  if (!node->right()->is_typed(cdk::TYPE_INT)) {
+    throw node->right()->lineno() + "wrong type in right argument of mod expression";
+  }
+
+  node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
 }
 void til::type_checker::do_lt_node(cdk::lt_node *const node, int lvl) {
-  processBinaryExpression(node, lvl);
+  ID_operation(node, lvl);
 }
 void til::type_checker::do_le_node(cdk::le_node *const node, int lvl) {
-  processBinaryExpression(node, lvl);
+  ID_operation(node, lvl);
 }
 void til::type_checker::do_ge_node(cdk::ge_node *const node, int lvl) {
-  processBinaryExpression(node, lvl);
+  ID_operation(node, lvl);
 }
 void til::type_checker::do_gt_node(cdk::gt_node *const node, int lvl) {
-  processBinaryExpression(node, lvl);
+  ID_operation(node, lvl);
 }
 void til::type_checker::do_ne_node(cdk::ne_node *const node, int lvl) {
   processBinaryExpression(node, lvl);
