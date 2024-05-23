@@ -70,7 +70,7 @@ EXP [Ee][+-]?[0-9]+
 "program"              return tPROGRAM;
 
 
-[A-Za-z][A-Za-z0-9_]*  yylval.s = new std::string(yytext); return tIDENTIFIER;
+[A-Za-z][A-Za-z0-9]*  yylval.s = new std::string(yytext); return tIDENTIFIER;
 
 \"                     yy_push_state(X_STRING); yylval.s = new std::string("");
 <X_STRING>\"           yy_pop_state(); return tSTRINGLIT;
@@ -109,6 +109,7 @@ EXP [Ee][+-]?[0-9]+
                        }
 0[0-9]+                yyerror("invalid integer");
 
+0x[0]*                yyerror("invalid hex integer");
 0x[0-9A-Fa-f]+         {
                         try {
                           yylval.i = std::stoi(yytext, nullptr, 16);
@@ -117,7 +118,7 @@ EXP [Ee][+-]?[0-9]+
                           yyerror("integer out of range");
                         }
                        }
-0x[0-9A-Za-z]+         yyerror("invalid hex integer");
+0x[0-9A-Za-z]+        yyerror("invalid hex integer");
 
 [0-9]+\.[0-9]+{EXP}?   PROCESS_DOUBLE;
 [0-9]+\.{EXP}?         PROCESS_DOUBLE;
