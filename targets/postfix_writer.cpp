@@ -315,6 +315,7 @@ void til::postfix_writer::do_function_node(til::function_node * const node, int 
 
     // these are just a few library function imports
     _pf.EXTERN("readi");
+    _pf.EXTERN("readd");
     _pf.EXTERN("printi");
     _pf.EXTERN("prints");
     _pf.EXTERN("printd");
@@ -366,8 +367,14 @@ void til::postfix_writer::do_print_node(til::print_node * const node, int lvl) {
 //---------------------------------------------------------------------------
 
 void til::postfix_writer::do_read_node(til::read_node * const node, int lvl) {
-  // TODO: implement this
-  throw "not implemented";
+  ASSERT_SAFE_EXPRESSIONS;
+  if (node->is_typed(cdk::TYPE_INT)) {
+    _pf.CALL("readi");
+    _pf.LDFVAL32();
+  } else if (node->is_typed(cdk::TYPE_DOUBLE)) {
+    _pf.CALL("readd");
+    _pf.LDFVAL64();
+  }
 }
 
 //---------------------------------------------------------------------------
@@ -405,7 +412,7 @@ void til::postfix_writer::do_if_else_node(til::if_else_node * const node, int lv
   _pf.JMP(mklbl(lbl2 = ++_lbl));
   _pf.LABEL(mklbl(lbl1));
   node->elseblock()->accept(this, lvl + 2);
-  _pf.LABEL(mklbl(lbl1 = lbl2));
+  _pf.LABEL(mklbl(lbl2));
 }
 
 //---------------------------------------------------------------------------
