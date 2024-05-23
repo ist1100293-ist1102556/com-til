@@ -405,7 +405,7 @@ void til::postfix_writer::do_if_else_node(til::if_else_node * const node, int lv
   _pf.JMP(mklbl(lbl2 = ++_lbl));
   _pf.LABEL(mklbl(lbl1));
   node->elseblock()->accept(this, lvl + 2);
-  _pf.LABEL(mklbl(lbl1 = lbl2));
+  _pf.LABEL(mklbl(lbl2));
 }
 
 //---------------------------------------------------------------------------

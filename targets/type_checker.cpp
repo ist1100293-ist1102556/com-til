@@ -257,16 +257,25 @@ void til::type_checker::do_read_node(til::read_node *const node, int lvl) {
 
 void til::type_checker::do_loop_node(til::loop_node *const node, int lvl) {
   node->condition()->accept(this, lvl + 4);
+  if (!node->condition()->is_typed(cdk::TYPE_INT)) {
+    throw std::string("wrong type in condition of if expression");
+  }
 }
 
 //---------------------------------------------------------------------------
 
 void til::type_checker::do_if_node(til::if_node *const node, int lvl) {
   node->condition()->accept(this, lvl + 4);
+  if (!node->condition()->is_typed(cdk::TYPE_INT)) {
+    throw std::string("wrong type in condition of if expression");
+  }
 }
 
 void til::type_checker::do_if_else_node(til::if_else_node *const node, int lvl) {
   node->condition()->accept(this, lvl + 4);
+  if (!node->condition()->is_typed(cdk::TYPE_INT)) {
+    throw std::string("wrong type in condition of if else expression");
+  }
 }
 
 //---------------------------------------------------------------------------
