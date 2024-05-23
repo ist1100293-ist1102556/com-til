@@ -16,13 +16,40 @@ void til::postfix_writer::do_double_node(cdk::double_node * const node, int lvl)
   // EMPTY
 }
 void til::postfix_writer::do_not_node(cdk::not_node * const node, int lvl) {
-  // EMPTY
+  ASSERT_SAFE_EXPRESSIONS;
+  node->argument()->accept(this, lvl);
+  _pf.INT(0);
+  _pf.EQ();
 }
 void til::postfix_writer::do_and_node(cdk::and_node * const node, int lvl) {
-  // EMPTY
+  ASSERT_SAFE_EXPRESSIONS;
+  int lbl1 = ++_lbl;
+
+  node->left()->accept(this, lvl);
+  _pf.INT(0);
+  _pf.NE();
+  _pf.DUP32();
+  _pf.JZ(mklbl(lbl1));
+  node->right()->accept(this, lvl);
+  _pf.INT(0);
+  _pf.NE();
+  _pf.AND();
+  _pf.LABEL(mklbl(lbl1));
 }
 void til::postfix_writer::do_or_node(cdk::or_node * const node, int lvl) {
-  // EMPTY
+  ASSERT_SAFE_EXPRESSIONS;
+  int lbl1 = ++_lbl;
+
+  node->left()->accept(this, lvl);
+  _pf.INT(0);
+  _pf.NE();
+  _pf.DUP32();
+  _pf.JNZ(mklbl(lbl1));
+  node->right()->accept(this, lvl);
+  _pf.INT(0);
+  _pf.NE();
+  _pf.OR();
+  _pf.LABEL(mklbl(lbl1));
 }
 
 //---------------------------------------------------------------------------
