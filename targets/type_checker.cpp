@@ -317,10 +317,85 @@ void til::type_checker::do_return_node(til::return_node * const node, int lvl) {
   node->value()->accept(this, lvl);
 }
 
+// Receives 2 types that are not unspec, and checks if they are compatible
+// if cov is true, then it checks for covariant types.
+bool til::type_checker::compare_types(std::shared_ptr<cdk::basic_type> left, std::shared_ptr<cdk::basic_type> right, bool cov) {
+  if (left->name() == cdk::TYPE_UNSPEC || right->name() == cdk::TYPE_UNSPEC) {
+    return false;
+  } else if (left->name() == cdk::TYPE_FUNCTIONAL && right->name() == cdk::TYPE_FUNCTIONAL) {
+    auto left_func = cdk::functional_type::cast(left);
+    auto right_func = cdk::functional_type::cast(right);
+
+    if (left_func->input_length() != right_func->input_length() ||
+        left_func->output_length() != right_func->output_length() ) {
+          return false;
+    }
+
+    for (size_t i = 0; i < left_func->output_length(); i++) {
+      if (!compare_types(left_func->output(i), right_func->output(i), cov)) {
+        return false;
+      }
+    }
+
+    for (size_t i = 0; i < left_func->input_length(); i++) {
+      // We invert the order of the arguments, because in the case that
+      // cov is true, that is the way that subtyping works on functions
+      // example a function that accepts a double can be passed to a place
+      // that accepts functions that accept an int
+      // (the reverse relation that the arguments have).
+      if (!compare_types(right_func->input(i), left_func->input(i), cov)) {
+        return false;
+      }
+    }
+
+    return true;
+  } else if (left->name() == cdk::TYPE_POINTER && right->name() == cdk::TYPE_POINTER) {
+    auto left_ref = cdk::reference_type::cast(left);
+    auto right_ref = cdk::reference_type::cast(right);
+
+    return compare_types(left_ref->referenced(), right_ref->referenced(), cov);
+  } else if (cov && left->name() == cdk::TYPE_DOUBLE && right->name() == cdk::TYPE_INT) {
+    // only base case where covariance changes something
+    return true;
+  } else {
+    return left->name() == right->name();
+  }
+}
+
 //---------------------------------------------------------------------------
 void til::type_checker::do_declaration_node(til::declaration_node * const node, int lvl) {
-  // TODO: implement this
-  throw "not implemented";
+  if (node->type() != nullptr) { // type defined on declaration
+    if (node->initial() != nullptr) { // has initializer
+      node->initial()->accept(this, lvl);
+
+      if (node->initial()->is_typed(cdk::TYPE_UNSPEC)) {
+        node->initial()->type(node->type());
+      }
+
+      if (!compare_types(node->type(), node->initial()->type(), true)) {
+        throw "type mismatch on declaration of" + node->identifier();
+      }
+    }
+  } else { // type infered
+    node->initial()->accept(this, lvl);
+
+    if (node->initial()->is_typed(cdk::TYPE_UNSPEC)) {
+      // if we have a variable with type inference that has an initializer
+      // that needs their type defined by the parent (undefined behaviour)
+      // we assign the type int
+      node->initial()->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+    }
+
+    node->type(node->initial()->type());
+  }
+
+  auto sym = std::make_shared<til::symbol>(node->type(), node->identifier(), node->qualifier());
+
+  if (_symtab.insert(sym->name(), sym)) {
+    return; // Success
+  }
+
+  throw "redeclaring variable" + node->identifier();
 }
 
 //---------------------------------------------------------------------------

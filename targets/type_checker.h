@@ -24,6 +24,7 @@ namespace til {
     }
 
   protected:
+    bool compare_types(std::shared_ptr<cdk::basic_type> left, std::shared_ptr<cdk::basic_type> right, bool cov);
     void ID_operation(cdk::binary_operation_node *node, int lvl);
     void PID_operation(cdk::binary_operation_node *node, int lvl);
     void processUnaryExpression(cdk::unary_operation_node *const node, int lvl);

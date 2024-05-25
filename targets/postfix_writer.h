@@ -15,6 +15,9 @@ namespace til {
     cdk::symbol_table<til::symbol> &_symtab;
     cdk::basic_postfix_emitter &_pf;
     int _lbl;
+    std::vector<std::string> _function_labels;
+    bool _processing_args = false;
+    int _offset = 0;
 
   public:
     postfix_writer(std::shared_ptr<cdk::compiler> compiler, cdk::symbol_table<til::symbol> &symtab,
@@ -36,6 +39,10 @@ namespace til {
       else
         oss << "_L" << lbl;
       return oss.str();
+    }
+
+    bool in_function() {
+      return _function_labels.size() > 0;
     }
 
     void ID_operation(cdk::binary_operation_node *node, int lvl);
