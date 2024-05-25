@@ -234,7 +234,7 @@ void til::type_checker::do_assignment_node(cdk::assignment_node *const node, int
     node->rvalue()->type(node->lvalue()->type());
   } 
   
-  if (node->lvalue()->type() == node->rvalue()->type()) {
+  if (compare_types(node->lvalue()->type(), node->rvalue()->type(), true)) {
     node->type(node->lvalue()->type());
   } else {
     throw std::string("wrong types in assignment");
@@ -400,8 +400,6 @@ void til::type_checker::do_declaration_node(til::declaration_node * const node, 
 
 //---------------------------------------------------------------------------
 void til::type_checker::do_block_node(til::block_node * const node, int lvl) {
-  // TODO: implement this
-  throw "not implemented";
 }
 
 //---------------------------------------------------------------------------

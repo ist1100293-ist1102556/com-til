@@ -2,6 +2,7 @@
 #include <sstream>
 #include "targets/type_checker.h"
 #include "targets/postfix_writer.h"
+#include "targets/frame_size_calculator.h"
 #include ".auto/all_nodes.h"  // all_nodes.h is automatically generated
 
 //---------------------------------------------------------------------------
@@ -282,32 +283,47 @@ void til::postfix_writer::do_eq_node(cdk::eq_node * const node, int lvl) {
 
 void til::postfix_writer::do_variable_node(cdk::variable_node * const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
-  // simplified generation: all variables are global
-  _pf.ADDR(node->name());
+  auto sym = _symtab.find(node->name());
+
+  if (sym == nullptr) {
+    throw "undeclared variable " + node->name();
+  }
+
+  if (sym->offset() == 0) { // global
+    _pf.ADDR(sym->name());
+  } else {
+    _pf.LOCAL(sym->offset());
+  }
 }
 
 void til::postfix_writer::do_rvalue_node(cdk::rvalue_node * const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
   node->lvalue()->accept(this, lvl);
-  _pf.LDINT(); // depends on type size
+  if (node->type()->size() == 4) {
+    _pf.LDINT();
+  } else if (node->type()->size() == 8) {
+    _pf.LDDOUBLE();
+  }
 }
 
 void til::postfix_writer::do_assignment_node(cdk::assignment_node * const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
   node->rvalue()->accept(this, lvl); // determine the new value
-  _pf.DUP32();
-  if (new_symbol() == nullptr) {
-    node->lvalue()->accept(this, lvl); // where to store the value
-  } else {
-    _pf.DATA(); // variables are all global and live in DATA
-    _pf.ALIGN(); // make sure we are aligned
-    _pf.LABEL(new_symbol()->name()); // name variable location
-    reset_new_symbol();
-    _pf.SINT(0); // initialize it to 0 (zero)
-    _pf.TEXT(); // return to the TEXT segment
-    node->lvalue()->accept(this, lvl);  //DAVID: bah!
+  
+  if (node->rvalue()->type()->size() == 4) {
+    _pf.DUP32();
+  } else if (node->rvalue()->type()->size() == 8) {
+    _pf.DUP64();
   }
-  _pf.STINT(); // store the value at address
+
+  node->lvalue()->accept(this, lvl); // pushes the target address to stack
+
+  // Store the value
+  if (node->rvalue()->type()->size() == 4) {
+    _pf.STINT();
+  } else if (node->rvalue()->type()->size() == 8) {
+    _pf.STDOUBLE();
+  }
 }
 
 //---------------------------------------------------------------------------
@@ -325,10 +341,23 @@ void til::postfix_writer::do_function_node(til::function_node * const node, int 
     _pf.GLOBAL("_main", _pf.FUNC());
     _pf.LABEL("_main");
     _function_labels.push_back("_main");
-    _pf.ENTER(0);  // Simple doesn't implement local variables
+
+    til::frame_size_calculator calc(_compiler, _symtab);
+    _symtab.push();
+    node->declarations()->accept(&calc, lvl);
+    node->instructions()->accept(&calc, lvl);
+    _symtab.pop();
+    _pf.ENTER(calc.size());  // Simple doesn't implement local variables
+    
+    _symtab.push();
+
+    _offset = 0;
+    _processing_args = false;
+    node->declarations()->accept(this, lvl);
     node->instructions()->accept(this, lvl);
 
     _function_labels.pop_back();
+    _symtab.pop();
     // these are just a few library function imports
     _pf.EXTERN("readi");
     _pf.EXTERN("readd");
@@ -343,15 +372,8 @@ void til::postfix_writer::do_function_node(til::function_node * const node, int 
 
 void til::postfix_writer::do_evaluation_node(til::evaluation_node * const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
-  node->argument()->accept(this, lvl); // determine the value
-  if (node->argument()->is_typed(cdk::TYPE_INT)) {
-    _pf.TRASH(4); // delete the evaluated value
-  } else if (node->argument()->is_typed(cdk::TYPE_STRING)) {
-    _pf.TRASH(4); // delete the evaluated value's address
-  } else {
-    std::cerr << "ERROR: CANNOT HAPPEN!" << std::endl;
-    exit(1);
-  }
+  node->argument()->accept(this, lvl); // evaluate the expression
+  _pf.TRASH(node->argument()->type()->size()); // delete the evaluated value
 }
 
 void til::postfix_writer::do_print_node(til::print_node * const node, int lvl) {
@@ -401,7 +423,7 @@ void til::postfix_writer::do_loop_node(til::loop_node * const node, int lvl) {
   _pf.LABEL(mklbl(lbl1 = ++_lbl));
   node->condition()->accept(this, lvl);
   _pf.JZ(mklbl(lbl2 = ++_lbl));
-  node->instruction()->accept(this, lvl + 2);
+  node->instruction()->accept(this, lvl);
   _pf.JMP(mklbl(lbl1));
   _pf.LABEL(mklbl(lbl2));
 }
@@ -523,8 +545,10 @@ void til::postfix_writer::do_declaration_node(til::declaration_node * const node
 
 //---------------------------------------------------------------------------
 void til::postfix_writer::do_block_node(til::block_node * const node, int lvl) {
-  // TODO: implement this
-  throw "not implemented";
+  _symtab.push();
+  node->declarations()->accept(this, lvl);
+  node->instructions()->accept(this, lvl);
+  _symtab.pop();
 }
 
 //---------------------------------------------------------------------------
