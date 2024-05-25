@@ -13,7 +13,12 @@ void til::postfix_writer::do_data_node(cdk::data_node * const node, int lvl) {
   // EMPTY
 }
 void til::postfix_writer::do_double_node(cdk::double_node * const node, int lvl) {
-  // EMPTY
+  ASSERT_SAFE_EXPRESSIONS;
+  if (in_function()) {
+    _pf.DOUBLE(node->value()); // push an double
+  } else {
+    _pf.SDOUBLE(node->value());
+  }
 }
 void til::postfix_writer::do_not_node(cdk::not_node * const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
@@ -64,7 +69,11 @@ void til::postfix_writer::do_sequence_node(cdk::sequence_node * const node, int 
 
 void til::postfix_writer::do_integer_node(cdk::integer_node * const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
-  _pf.INT(node->value()); // push an integer
+  if (in_function()) {
+    _pf.INT(node->value()); // push an integer
+  } else {
+    _pf.SINT(node->value());
+  }
 }
 
 void til::postfix_writer::do_string_node(cdk::string_node * const node, int lvl) {
@@ -77,9 +86,15 @@ void til::postfix_writer::do_string_node(cdk::string_node * const node, int lvl)
   _pf.LABEL(mklbl(lbl1 = ++_lbl)); // give the string a name
   _pf.SSTRING(node->value()); // output string characters
 
-  /* leave the address on the stack */
-  _pf.TEXT(); // return to the TEXT segment
-  _pf.ADDR(mklbl(lbl1)); // the string to be printed
+  if (in_function()) {
+    /* leave the address on the stack */
+    _pf.TEXT(_function_labels.back()); // return to the TEXT segment
+    _pf.ADDR(mklbl(lbl1)); // the string to be printed
+  } else {
+    _pf.DATA(); // return to the DATA segment
+    _pf.ALIGN(); // make sure we are aligned
+    _pf.SADDR(mklbl(lbl1)); // give the string a name
+  }
 }
 
 //---------------------------------------------------------------------------
@@ -417,8 +432,12 @@ void til::postfix_writer::do_if_else_node(til::if_else_node * const node, int lv
 
 //---------------------------------------------------------------------------
 void til::postfix_writer::do_nullptr_node(til::nullptr_node * const node, int lvl) {
-  // TODO: implement this
-  throw "not implemented";
+  ASSERT_SAFE_EXPRESSIONS;
+  if (in_function()) {
+    _pf.INT(0); // push an integer
+  } else {
+    _pf.SINT(0);
+  }
 }
 
 //---------------------------------------------------------------------------
@@ -453,6 +472,52 @@ void til::postfix_writer::do_return_node(til::return_node * const node, int lvl)
 
 //---------------------------------------------------------------------------
 void til::postfix_writer::do_declaration_node(til::declaration_node * const node, int lvl) {
+  ASSERT_SAFE_EXPRESSIONS;
+  if (in_function()) {
+    if (_processing_args) {
+      _symtab.find(node->identifier())->offset(_offset);
+      _offset += node->type()->size();
+    } else {
+      _offset -= node->type()->size();
+      _symtab.find(node->identifier())->offset(_offset);
+    }
+  }
+
+  if (node->qualifier() == 2 || node->qualifier() == 3) {
+      _pf.EXTERN(node->identifier());
+      return;
+    }
+  if (in_function()) {
+    if (node->initial() != nullptr) {
+      node->initial()->accept(this, lvl);
+      _pf.LOCAL(_symtab.find(node->identifier())->offset());
+      if (node->type()->size() == 4) {
+        _pf.STINT();
+      } else if (node->type()->size() == 8) {
+        _pf.STDOUBLE();
+      }
+    }
+  } else {
+    if (node->initial() != nullptr) {
+      _pf.DATA();
+      _pf.ALIGN();
+      // PUBLIC
+      if (node->qualifier() == 1) {
+        _pf.GLOBAL(node->identifier(), _pf.OBJ());
+      }
+      _pf.LABEL(node->identifier());
+      node->initial()->accept(this, lvl);
+    } else {
+      _pf.BSS();
+      _pf.ALIGN();
+      // PUBLIC
+      if (node->qualifier() == 1) {
+        _pf.GLOBAL(node->identifier(), _pf.OBJ());
+      }
+      _pf.LABEL(node->identifier());
+      _pf.SALLOC(node->type()->size());
+    }
+  }
 }
 
 //---------------------------------------------------------------------------
