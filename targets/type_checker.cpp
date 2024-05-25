@@ -23,7 +23,7 @@ void til::type_checker::do_data_node(cdk::data_node *const node, int lvl) {
   // EMPTY
 }
 void til::type_checker::do_double_node(cdk::double_node *const node, int lvl) {
-  // EMPTY
+  node->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
 }
 void til::type_checker::do_not_node(cdk::not_node *const node, int lvl) {
   ASSERT_UNSPEC;
@@ -296,8 +296,7 @@ void til::type_checker::do_if_else_node(til::if_else_node *const node, int lvl) 
 
 //---------------------------------------------------------------------------
 void til::type_checker::do_nullptr_node(til::nullptr_node * const node, int lvl) {
-  // TODO: implement this
-  throw "not implemented";
+  node->type(cdk::primitive_type::create(4, cdk::TYPE_POINTER));
 }
 
 //---------------------------------------------------------------------------
@@ -418,8 +417,8 @@ void til::type_checker::do_objects_operator_node(til::objects_operator_node * co
 
 //---------------------------------------------------------------------------
 void til::type_checker::do_sizeof_operator_node(til::sizeof_operator_node * const node, int lvl) {
-  // TODO: implement this
-  throw "not implemented";
+  node->argument()->accept(this, lvl);
+  node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
 }
 
 //---------------------------------------------------------------------------

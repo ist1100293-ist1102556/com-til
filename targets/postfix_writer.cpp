@@ -419,13 +419,17 @@ void til::postfix_writer::do_read_node(til::read_node * const node, int lvl) {
 
 void til::postfix_writer::do_loop_node(til::loop_node * const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
-  int lbl1, lbl2;
-  _pf.LABEL(mklbl(lbl1 = ++_lbl));
+  int lbl_cond, lbl_end;
+  _loop_next_labels.push_back(lbl_cond = ++_lbl);
+  _loop_stop_labels.push_back(lbl_end = ++_lbl);
+  _pf.LABEL(mklbl(lbl_cond));
   node->condition()->accept(this, lvl);
-  _pf.JZ(mklbl(lbl2 = ++_lbl));
+  _pf.JZ(mklbl(lbl_end));
   node->instruction()->accept(this, lvl);
-  _pf.JMP(mklbl(lbl1));
-  _pf.LABEL(mklbl(lbl2));
+  _pf.JMP(mklbl(lbl_cond));
+  _pf.LABEL(mklbl(lbl_end));
+  _loop_next_labels.pop_back();
+  _loop_stop_labels.pop_back();
 }
 
 //---------------------------------------------------------------------------
@@ -465,14 +469,26 @@ void til::postfix_writer::do_nullptr_node(til::nullptr_node * const node, int lv
 
 //---------------------------------------------------------------------------
 void til::postfix_writer::do_stop_node(til::stop_node * const node, int lvl) {
-  // TODO: implement this
-  throw "not implemented";
+  auto level = static_cast<size_t>(node->level());
+
+  if (level == 0 || level > _loop_stop_labels.size()) {
+    throw "invalid loop to stop";
+  }
+
+  auto label = _loop_stop_labels.at(_loop_stop_labels.size() - level);
+  _pf.JMP(mklbl(label));
 }
 
 //---------------------------------------------------------------------------
 void til::postfix_writer::do_next_node(til::next_node * const node, int lvl) {
-  // TODO: implement this
-  throw "not implemented";
+  auto level = static_cast<size_t>(node->level());
+
+  if (level == 0 || level > _loop_next_labels.size()) {
+    throw "invalid loop to go next";
+  }
+
+  auto label = _loop_next_labels.at(_loop_next_labels.size() - level);
+  _pf.JMP(mklbl(label));
 }
 
 //---------------------------------------------------------------------------
@@ -566,8 +582,9 @@ void til::postfix_writer::do_objects_operator_node(til::objects_operator_node * 
 
 //---------------------------------------------------------------------------
 void til::postfix_writer::do_sizeof_operator_node(til::sizeof_operator_node * const node, int lvl) {
-  // TODO: implement this
-  throw "not implemented";
+  ASSERT_SAFE_EXPRESSIONS;
+
+  _pf.INT(node->argument()->type()->size());
 }
 
 //---------------------------------------------------------------------------
