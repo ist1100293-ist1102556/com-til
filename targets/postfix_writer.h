@@ -16,6 +16,8 @@ namespace til {
     cdk::basic_postfix_emitter &_pf;
     int _lbl;
     std::vector<std::string> _function_labels;
+    std::vector<int> _loop_stop_labels;
+    std::vector<int> _loop_next_labels;
     bool _processing_args = false;
     int _offset = 0;
 
