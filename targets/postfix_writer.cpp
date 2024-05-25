@@ -324,10 +324,11 @@ void til::postfix_writer::do_function_node(til::function_node * const node, int 
     _pf.ALIGN();
     _pf.GLOBAL("_main", _pf.FUNC());
     _pf.LABEL("_main");
+    _function_labels.push_back("_main");
     _pf.ENTER(0);  // Simple doesn't implement local variables
-
     node->instructions()->accept(this, lvl);
 
+    _function_labels.pop_back();
     // these are just a few library function imports
     _pf.EXTERN("readi");
     _pf.EXTERN("readd");
