@@ -20,6 +20,7 @@ namespace til {
     std::vector<int> _loop_next_labels;
     bool _processing_args = false;
     int _offset = 0;
+    bool _end_instruction = 0;
 
   public:
     postfix_writer(std::shared_ptr<cdk::compiler> compiler, cdk::symbol_table<til::symbol> &symtab,
