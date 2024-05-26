@@ -421,9 +421,15 @@ void til::postfix_writer::do_function_node(til::function_node * const node, int 
       node->instructions()->node(i)->accept(this, lvl);
     }
     auto type = std::dynamic_pointer_cast<cdk::functional_type>(node->type());
-    if (!_end_instruction && (type->output(0)->name() != cdk::TYPE_VOID)){
-      throw "function has no return node";
+    if (!_end_instruction) {
+      if (type->output(0)->name() != cdk::TYPE_VOID){
+        throw "function has no return node";
+      } else {
+        _pf.LEAVE();
+        _pf.RET();
+      }
     }
+
     _end_instruction = 0;
 
     _offset = old_offset;
