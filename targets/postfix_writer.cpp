@@ -336,7 +336,7 @@ void til::postfix_writer::do_function_node(til::function_node * const node, int 
 
   // generate the main function (RTS mandates that its name be "_main")
   if (node->is_main()) {
-    _pf.TEXT();
+    _pf.TEXT("_main");
     _pf.ALIGN();
     _pf.GLOBAL("_main", _pf.FUNC());
     _pf.LABEL("_main");
@@ -347,14 +347,26 @@ void til::postfix_writer::do_function_node(til::function_node * const node, int 
     node->declarations()->accept(&calc, lvl);
     node->instructions()->accept(&calc, lvl);
     _symtab.pop();
-    _pf.ENTER(calc.size());  // Simple doesn't implement local variables
+    _pf.ENTER(calc.size());
     
     _symtab.push();
 
     _offset = 0;
     _processing_args = false;
     node->declarations()->accept(this, lvl);
-    node->instructions()->accept(this, lvl);
+    
+    _end_instruction = 0;
+    for (size_t i = 0; i < node->instructions()->size(); i++) {
+      if (_end_instruction) {
+        throw "function has a return node in the middle of the code";
+      }
+      node->instructions()->node(i)->accept(this, lvl);
+    }
+    auto type = std::dynamic_pointer_cast<cdk::functional_type>(node->type());
+    if (!_end_instruction && (type->output(0)->name() != cdk::TYPE_VOID)){
+      throw "function has no return node";
+    }
+    _end_instruction = 0;
 
     _function_labels.pop_back();
     _symtab.pop();
@@ -365,6 +377,67 @@ void til::postfix_writer::do_function_node(til::function_node * const node, int 
     _pf.EXTERN("prints");
     _pf.EXTERN("printd");
     _pf.EXTERN("println");
+  } else {
+    int lbl1 = ++_lbl;
+    std::string lbl = mklbl(lbl1);
+    _pf.TEXT(lbl);
+    _pf.ALIGN();
+    _pf.LABEL(lbl);
+    _function_labels.push_back(lbl);
+
+    std::vector<int> old_loop_stop_labels = _loop_stop_labels;
+    std::vector<int> old_loop_next_labels = _loop_next_labels;
+    _loop_stop_labels.clear();
+    _loop_next_labels.clear();
+
+    til::frame_size_calculator calc(_compiler, _symtab);
+    _symtab.push();
+    node->declarations()->accept(&calc, lvl);
+    node->instructions()->accept(&calc, lvl);
+    _symtab.pop();
+    _pf.ENTER(calc.size());
+
+    _symtab.push();
+
+    auto symbol = std::make_shared<til::symbol>(node->type(), "@", 0);
+    _symtab.insert("@", symbol);
+
+    int old_offset = _offset;
+    _offset = 8;
+    _processing_args = true;
+    node->arguments()->accept(this, lvl);
+    _offset = 0;
+    _processing_args = false;
+    node->declarations()->accept(this, lvl);
+
+    _end_instruction = 0;
+    for (size_t i = 0; i < node->instructions()->size(); i++) {
+      if (_end_instruction) {
+        throw "function has a return node in the middle of the code";
+      }
+      node->instructions()->node(i)->accept(this, lvl);
+    }
+    auto type = std::dynamic_pointer_cast<cdk::functional_type>(node->type());
+    if (!_end_instruction && (type->output(0)->name() != cdk::TYPE_VOID)){
+      throw "function has no return node";
+    }
+    _end_instruction = 0;
+
+    _offset = old_offset;
+    _function_labels.pop_back();
+    if (in_function()) {
+      _pf.TEXT(_function_labels.back());
+      _pf.ALIGN();
+      _pf.ADDR(lbl);
+    } else {
+      _pf.DATA();
+      _pf.ALIGN();
+      _pf.SADDR(lbl);
+    }
+    _symtab.pop();
+
+    _loop_stop_labels = old_loop_stop_labels;
+    _loop_next_labels = old_loop_next_labels;
   }
 }
 
@@ -426,6 +499,7 @@ void til::postfix_writer::do_loop_node(til::loop_node * const node, int lvl) {
   node->condition()->accept(this, lvl);
   _pf.JZ(mklbl(lbl_end));
   node->instruction()->accept(this, lvl);
+  _end_instruction = 0;
   _pf.JMP(mklbl(lbl_cond));
   _pf.LABEL(mklbl(lbl_end));
   _loop_next_labels.pop_back();
@@ -440,6 +514,7 @@ void til::postfix_writer::do_if_node(til::if_node * const node, int lvl) {
   node->condition()->accept(this, lvl);
   _pf.JZ(mklbl(lbl1 = ++_lbl));
   node->block()->accept(this, lvl + 2);
+  _end_instruction = 0;
   _pf.LABEL(mklbl(lbl1));
 }
 
@@ -448,12 +523,15 @@ void til::postfix_writer::do_if_node(til::if_node * const node, int lvl) {
 void til::postfix_writer::do_if_else_node(til::if_else_node * const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
   int lbl1, lbl2;
+  _end_instruction = 0;
   node->condition()->accept(this, lvl);
   _pf.JZ(mklbl(lbl1 = ++_lbl));
   node->thenblock()->accept(this, lvl + 2);
+  _end_instruction = 0;
   _pf.JMP(mklbl(lbl2 = ++_lbl));
   _pf.LABEL(mklbl(lbl1));
   node->elseblock()->accept(this, lvl + 2);
+  _end_instruction = 0;
   _pf.LABEL(mklbl(lbl2));
 }
 
@@ -477,6 +555,7 @@ void til::postfix_writer::do_stop_node(til::stop_node * const node, int lvl) {
 
   auto label = _loop_stop_labels.at(_loop_stop_labels.size() - level);
   _pf.JMP(mklbl(label));
+  _end_instruction = 1;
 }
 
 //---------------------------------------------------------------------------
@@ -489,6 +568,7 @@ void til::postfix_writer::do_next_node(til::next_node * const node, int lvl) {
 
   auto label = _loop_next_labels.at(_loop_next_labels.size() - level);
   _pf.JMP(mklbl(label));
+  _end_instruction = 1;
 }
 
 //---------------------------------------------------------------------------
@@ -507,6 +587,7 @@ void til::postfix_writer::do_return_node(til::return_node * const node, int lvl)
 
   _pf.LEAVE();
   _pf.RET();
+  _end_instruction = 1;
 }
 
 //---------------------------------------------------------------------------
@@ -563,7 +644,14 @@ void til::postfix_writer::do_declaration_node(til::declaration_node * const node
 void til::postfix_writer::do_block_node(til::block_node * const node, int lvl) {
   _symtab.push();
   node->declarations()->accept(this, lvl);
-  node->instructions()->accept(this, lvl);
+  _end_instruction = 0;
+  for (size_t i = 0; i < node->instructions()->size(); i++) {
+    if (_end_instruction) {
+      throw "block has a return node in the middle of the code";
+    }
+    node->instructions()->node(i)->accept(this, lvl);
+  }
+  _end_instruction = 0;
   _symtab.pop();
 }
 

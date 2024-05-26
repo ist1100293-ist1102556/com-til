@@ -313,7 +313,23 @@ void til::type_checker::do_next_node(til::next_node * const node, int lvl) {
 
 //---------------------------------------------------------------------------
 void til::type_checker::do_return_node(til::return_node * const node, int lvl) {
+  auto sym = _symtab.find("@");
+  if (sym == nullptr) {
+    throw "return statement outside function";
+  }
+  auto return_type = cdk::functional_type::cast(sym->type())->output(0);
+
+  if (node->value() == nullptr) {
+    if (return_type->name() != cdk::TYPE_VOID) {
+      throw "return type mismatch";
+    }
+    return;
+  }
+
   node->value()->accept(this, lvl);
+  if (!compare_types(return_type, node->value()->type(), true)) {
+    throw "return type mismatch";
+  }
 }
 
 // Receives 2 types that are not unspec, and checks if they are compatible
