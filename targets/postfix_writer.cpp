@@ -350,6 +350,9 @@ void til::postfix_writer::do_function_node(til::function_node * const node, int 
     _pf.ENTER(calc.size());
     
     _symtab.push();
+    
+    auto symbol = std::make_shared<til::symbol>(node->type(), "@", 0);
+    _symtab.insert("@", symbol);
 
     _offset = 0;
     _processing_args = false;
@@ -657,8 +660,28 @@ void til::postfix_writer::do_block_node(til::block_node * const node, int lvl) {
 
 //---------------------------------------------------------------------------
 void til::postfix_writer::do_function_call_node(til::function_call_node * const node, int lvl) {
-  // TODO: implement this
-  throw "not implemented";
+  ASSERT_SAFE_EXPRESSIONS;
+  int args_size = 0;
+  for (int i = node->args()->size()-1; i >= 0; i--) {
+    auto arg = dynamic_cast<cdk::expression_node*>(node->args()->node(i));
+    arg->accept(this, lvl);
+    args_size += arg->type()->size();
+  }
+
+  if (node->function_pointer() == nullptr) {
+    _pf.CALL(_function_labels.back());
+  } else {
+    node->function_pointer()->accept(this, lvl);
+    _pf.BRANCH();
+  }
+  _pf.TRASH(args_size);
+  _pf.ALIGN();
+
+  if (node->type()->size() == 4) {
+    _pf.LDFVAL32();
+  } else if (node->type()->size() == 8) {
+    _pf.LDFVAL64();
+  }
 }
 
 

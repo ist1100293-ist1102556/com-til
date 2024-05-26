@@ -315,20 +315,20 @@ void til::type_checker::do_next_node(til::next_node * const node, int lvl) {
 void til::type_checker::do_return_node(til::return_node * const node, int lvl) {
   auto sym = _symtab.find("@");
   if (sym == nullptr) {
-    throw "return statement outside function";
+    throw std::string("return statement outside function");
   }
   auto return_type = cdk::functional_type::cast(sym->type())->output(0);
 
   if (node->value() == nullptr) {
     if (return_type->name() != cdk::TYPE_VOID) {
-      throw "return type mismatch";
+      throw std::string("return type mismatch");
     }
     return;
   }
 
   node->value()->accept(this, lvl);
   if (!compare_types(return_type, node->value()->type(), true)) {
-    throw "return type mismatch";
+    throw std::string("return type mismatch");
   }
 }
 
@@ -419,8 +419,41 @@ void til::type_checker::do_block_node(til::block_node * const node, int lvl) {
 
 //---------------------------------------------------------------------------
 void til::type_checker::do_function_call_node(til::function_call_node * const node, int lvl) {
-  // TODO: implement this
-  throw "not implemented";
+  ASSERT_UNSPEC;
+  node->args()->accept(this, lvl);
+  std::shared_ptr<cdk::functional_type> func_type;
+
+  if (node->function_pointer() == nullptr) {
+    auto sym = _symtab.find("@");
+    if (sym == nullptr) {
+      throw "recursive function call outside function";
+    }
+    func_type = cdk::functional_type::cast(sym->type());
+  }else {
+    node->function_pointer()->accept(this, lvl);
+    if (!node->function_pointer()->is_typed(cdk::TYPE_FUNCTIONAL)) {
+      throw "wrong type in function pointer";
+    }
+    func_type = cdk::functional_type::cast(node->function_pointer()->type());
+  }
+
+  if (func_type->input_length() != node->args()->size()) {
+      throw "wrong number of arguments in recursive function call";
+  }
+
+  for (size_t i = 0; i < node->args()->size(); i++) {
+    auto arg = dynamic_cast<cdk::expression_node*>(node->args()->node(i));
+
+    if (arg->is_typed(cdk::TYPE_UNSPEC)) {
+      arg->type(func_type->input(i));
+    }
+
+    if (!compare_types(func_type->input(i), arg->type(), true)) {
+      throw "wrong type in argument of recursive function call";
+    }
+  }
+
+  node->type(func_type->output(0));
 }
 
 //---------------------------------------------------------------------------
