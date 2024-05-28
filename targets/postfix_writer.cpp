@@ -693,8 +693,19 @@ void til::postfix_writer::do_function_call_node(til::function_call_node * const 
 
 //---------------------------------------------------------------------------
 void til::postfix_writer::do_objects_operator_node(til::objects_operator_node * const node, int lvl) {
-  // TODO: implement this
-  throw "not implemented";
+  ASSERT_SAFE_EXPRESSIONS;
+
+  if (!node->is_typed(cdk::TYPE_POINTER)) {
+    throw std::string("trying to assign objects operator to a non pointer variable");
+  }
+
+  auto type = cdk::reference_type::cast(node->type());
+
+  node->argument()->accept(this, lvl);
+  _pf.INT(type->referenced()->size());
+  _pf.MUL();
+  _pf.ALLOC();
+  _pf.SP();
 }
 
 //---------------------------------------------------------------------------
