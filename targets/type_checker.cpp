@@ -439,16 +439,16 @@ void til::type_checker::do_declaration_node(til::declaration_node * const node, 
 
   auto sym = std::make_shared<til::symbol>(node->type(), node->identifier(), node->qualifier());
 
-  auto prev = _symtab.find(sym->name());
-
-  // If extern and already declared
-  if (prev != nullptr && (prev->qualifier() == 3)) {
-    _symtab.replace(sym->name(), sym);
-    return;
-  }
-
   if (_symtab.insert(sym->name(), sym)) {
     return; // Success
+  }
+
+  auto prev = _symtab.find(sym->name());
+
+  // If already declared, is extern, and types match, redeclare
+  if (prev != nullptr && (prev->qualifier() == 3) && compare_types(sym->type(), prev->type(), false)) {
+    _symtab.replace(sym->name(), sym);
+    return;
   }
 
   throw "redeclaring variable " + node->identifier();
