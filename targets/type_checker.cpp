@@ -263,8 +263,7 @@ void til::type_checker::do_evaluation_node(til::evaluation_node *const node, int
 }
 
 void til::type_checker::do_print_node(til::print_node *const node, int lvl) {
-  //Check the level
-  node->arguments()->accept(this, lvl + 2);
+  node->arguments()->accept(this, lvl);
 }
 
 //---------------------------------------------------------------------------
@@ -444,7 +443,15 @@ void til::type_checker::do_declaration_node(til::declaration_node * const node, 
     return; // Success
   }
 
-  throw "redeclaring variable" + node->identifier();
+  auto prev = _symtab.find(sym->name());
+
+  // If already declared, is extern, and types match, redeclare
+  if (prev != nullptr && (prev->qualifier() == 3) && compare_types(sym->type(), prev->type(), false)) {
+    _symtab.replace(sym->name(), sym);
+    return;
+  }
+
+  throw "redeclaring variable " + node->identifier();
 }
 
 //---------------------------------------------------------------------------

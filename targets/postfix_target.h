@@ -29,7 +29,7 @@ namespace til {
       // generate assembly code from the syntax tree
       postfix_writer writer(compiler, symtab, pf);
       compiler->ast()->accept(&writer, 0);
-
+      writer.declarate_externs();
       return true;
     }
 
