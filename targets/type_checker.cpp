@@ -263,8 +263,7 @@ void til::type_checker::do_evaluation_node(til::evaluation_node *const node, int
 }
 
 void til::type_checker::do_print_node(til::print_node *const node, int lvl) {
-  //Check the level
-  node->arguments()->accept(this, lvl + 2);
+  node->arguments()->accept(this, lvl);
 }
 
 //---------------------------------------------------------------------------
@@ -440,11 +439,19 @@ void til::type_checker::do_declaration_node(til::declaration_node * const node, 
 
   auto sym = std::make_shared<til::symbol>(node->type(), node->identifier(), node->qualifier());
 
+  auto prev = _symtab.find(sym->name());
+
+  // If extern and already declared
+  if (prev != nullptr && (prev->qualifier() == 3)) {
+    _symtab.replace(sym->name(), sym);
+    return;
+  }
+
   if (_symtab.insert(sym->name(), sym)) {
     return; // Success
   }
 
-  throw "redeclaring variable" + node->identifier();
+  throw "redeclaring variable " + node->identifier();
 }
 
 //---------------------------------------------------------------------------

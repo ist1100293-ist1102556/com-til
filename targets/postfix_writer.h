@@ -4,6 +4,7 @@
 #include "targets/basic_ast_visitor.h"
 
 #include <sstream>
+#include <set>
 #include <cdk/emitters/basic_postfix_emitter.h>
 
 namespace til {
@@ -15,6 +16,7 @@ namespace til {
     cdk::symbol_table<til::symbol> &_symtab;
     cdk::basic_postfix_emitter &_pf;
     int _lbl;
+    std::set<std::string> _extern_decls;
     std::vector<std::string> _function_labels;
     std::vector<int> _loop_stop_labels;
     std::vector<int> _loop_next_labels;
@@ -52,6 +54,12 @@ namespace til {
     void PID_operation(cdk::binary_operation_node *node, int lvl);
 
   public:
+    void declarate_externs() {
+      for (auto decl : _extern_decls) {
+        _pf.EXTERN(decl);
+      }
+    }
+
   // do not edit these lines
 #define __IN_VISITOR_HEADER__
 #include ".auto/visitor_decls.h"       // automatically generated

@@ -373,13 +373,6 @@ void til::postfix_writer::do_function_node(til::function_node * const node, int 
 
     _function_labels.pop_back();
     _symtab.pop();
-    // these are just a few library function imports
-    _pf.EXTERN("readi");
-    _pf.EXTERN("readd");
-    _pf.EXTERN("printi");
-    _pf.EXTERN("prints");
-    _pf.EXTERN("printd");
-    _pf.EXTERN("println");
   } else {
     int lbl1 = ++_lbl;
     std::string lbl = mklbl(lbl1);
@@ -465,12 +458,15 @@ void til::postfix_writer::do_print_node(til::print_node * const node, int lvl) {
     auto *arg = dynamic_cast<cdk::expression_node*>(node->arguments()->node(i));  
     arg->accept(this, lvl); // determine the value to print
     if (arg->is_typed(cdk::TYPE_INT)) {
+      _extern_decls.insert("printi");
       _pf.CALL("printi");
       _pf.TRASH(4); // delete the printed value
     } else if (arg->is_typed(cdk::TYPE_STRING)) {
+      _extern_decls.insert("prints");
       _pf.CALL("prints");
       _pf.TRASH(4); // delete the printed value's address
     } else if (arg->is_typed(cdk::TYPE_DOUBLE)) {
+      _extern_decls.insert("printd");
       _pf.CALL("printd");
       _pf.TRASH(8); // delete the printed value
     } else {
@@ -480,6 +476,7 @@ void til::postfix_writer::do_print_node(til::print_node * const node, int lvl) {
   }
 
   if (node->newline()) {
+    _extern_decls.insert("println");
     _pf.CALL("println"); // print a newline
   }
 }
@@ -489,9 +486,11 @@ void til::postfix_writer::do_print_node(til::print_node * const node, int lvl) {
 void til::postfix_writer::do_read_node(til::read_node * const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
   if (node->is_typed(cdk::TYPE_INT)) {
+    _extern_decls.insert("readi");
     _pf.CALL("readi");
     _pf.LDFVAL32();
   } else if (node->is_typed(cdk::TYPE_DOUBLE)) {
+    _extern_decls.insert("readd");
     _pf.CALL("readd");
     _pf.LDFVAL64();
   }
@@ -613,7 +612,7 @@ void til::postfix_writer::do_declaration_node(til::declaration_node * const node
   }
 
   if (node->qualifier() == 2 || node->qualifier() == 3) {
-      _pf.EXTERN(node->identifier());
+      _extern_decls.insert(node->identifier());
       return;
     }
   if (in_function()) {
@@ -646,6 +645,8 @@ void til::postfix_writer::do_declaration_node(til::declaration_node * const node
       _pf.LABEL(node->identifier());
       _pf.SALLOC(node->type()->size());
     }
+
+    _extern_decls.erase(node->identifier());
   }
 }
 
