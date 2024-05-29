@@ -9,10 +9,18 @@
 
 void til::postfix_writer::accept_covariant_node(cdk::expression_node * node, std::shared_ptr<cdk::basic_type> target_type, int lvl) {
   if (target_type->name() != cdk::TYPE_FUNCTIONAL && !node->is_typed(cdk::TYPE_FUNCTIONAL)) {
-    node->accept(this, lvl);
     if (target_type->name() == cdk::TYPE_DOUBLE && node->is_typed(cdk::TYPE_INT)) {
-      _pf.I2D();
+      // If inside function, just generate code to upgrade
+      if (in_function()) {
+        node->accept(this, lvl);
+        _pf.I2D();
+      } else { // If outside function, it means that it is a int literal
+        auto int_node = dynamic_cast<cdk::integer_node*>(node);
+        _pf.SDOUBLE((double) int_node->value());
+      }
+      return;
     }
+    node->accept(this, lvl);
     return;
   }
 
@@ -724,7 +732,7 @@ void til::postfix_writer::do_declaration_node(til::declaration_node * const node
         _pf.GLOBAL(node->identifier(), _pf.OBJ());
       }
       _pf.LABEL(node->identifier());
-      node->initial()->accept(this, lvl);
+      accept_covariant_node(node->initial(), node->type(), lvl);
     } else {
       _pf.BSS();
       _pf.ALIGN();
