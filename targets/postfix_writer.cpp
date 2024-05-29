@@ -204,6 +204,10 @@ void til::postfix_writer::do_add_node(cdk::add_node * const node, int lvl) {
   // If needed, upgrade
   if (node->is_typed(cdk::TYPE_DOUBLE) && node->left()->is_typed(cdk::TYPE_INT)) {
     _pf.I2D();
+  } else if (node->is_typed(cdk::TYPE_POINTER) && node->left()->is_typed(cdk::TYPE_INT)) {
+    auto reference_type = cdk::reference_type::cast(node->type());
+    _pf.INT(reference_type->referenced()->size());
+    _pf.MUL();
   }
 
   node->right()->accept(this, lvl);
@@ -211,6 +215,10 @@ void til::postfix_writer::do_add_node(cdk::add_node * const node, int lvl) {
   // If needed, upgrade
   if (node->is_typed(cdk::TYPE_DOUBLE) && node->right()->is_typed(cdk::TYPE_INT)) {
     _pf.I2D();
+  } else if (node->is_typed(cdk::TYPE_POINTER) && node->right()->is_typed(cdk::TYPE_INT)) {
+    auto reference_type = cdk::reference_type::cast(node->type());
+    _pf.INT(reference_type->referenced()->size());
+    _pf.MUL();
   }
 
   if (node->is_typed(cdk::TYPE_DOUBLE)) {
@@ -239,6 +247,11 @@ void til::postfix_writer::do_sub_node(cdk::sub_node * const node, int lvl) {
     _pf.DSUB();
   } else {
     _pf.SUB();
+    if (node->left()->is_typed(cdk::TYPE_POINTER) && node->right()->is_typed(cdk::TYPE_POINTER)) {
+      auto reference_type = cdk::reference_type::cast(node->left()->type());
+      _pf.INT(reference_type->referenced()->size());
+      _pf.DIV();
+    }
   }
 }
 
@@ -767,7 +780,15 @@ void til::postfix_writer::do_block_node(til::block_node * const node, int lvl) {
 void til::postfix_writer::do_function_call_node(til::function_call_node * const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
   int args_size = 0;
-  auto func_type = cdk::functional_type::cast(node->function_pointer()->type());
+  std::shared_ptr<cdk::functional_type> func_type;
+
+  if (node->function_pointer() == nullptr) {
+    auto sym = _symtab.find("@");
+    func_type = cdk::functional_type::cast(sym->type());
+  } else {
+    func_type = cdk::functional_type::cast(node->function_pointer()->type());
+  }
+
   for (int i = node->args()->size()-1; i >= 0; i--) {
     auto arg = dynamic_cast<cdk::expression_node*>(node->args()->node(i));
     accept_covariant_node(arg, func_type->input(i), lvl);

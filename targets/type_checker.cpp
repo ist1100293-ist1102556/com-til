@@ -103,7 +103,7 @@ void til::type_checker::do_unary_plus_node(cdk::unary_plus_node *const node, int
 
 //---------------------------------------------------------------------------
 
-void til::type_checker::processBinaryExpression(cdk::binary_operation_node *const node, int lvl) {
+void til::type_checker::process_comparison_expression(cdk::binary_operation_node *const node, int lvl) {
   ASSERT_UNSPEC;
 
   node->left()->accept(this, lvl);
@@ -112,11 +112,28 @@ void til::type_checker::processBinaryExpression(cdk::binary_operation_node *cons
   if (node->left()->is_typed(cdk::TYPE_INT) && node->right()->is_typed(cdk::TYPE_INT)) {
     node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
   } else if (node->left()->is_typed(cdk::TYPE_DOUBLE) && node->right()->is_typed(cdk::TYPE_DOUBLE)) {
-    node->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
+    node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+  } else if (node->left()->is_typed(cdk::TYPE_DOUBLE) && node->right()->is_typed(cdk::TYPE_INT)) {
+    node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+  } else if (node->left()->is_typed(cdk::TYPE_INT) && node->right()->is_typed(cdk::TYPE_DOUBLE)) {
+    node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+  } else if (node->left()->is_typed(cdk::TYPE_INT) && node->right()->is_typed(cdk::TYPE_UNSPEC)) {
+    node->right()->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+    node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+  } else if (node->left()->is_typed(cdk::TYPE_UNSPEC) && node->right()->is_typed(cdk::TYPE_INT)) {
+    node->left()->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+    node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+  } else if (node->left()->is_typed(cdk::TYPE_DOUBLE) && node->right()->is_typed(cdk::TYPE_UNSPEC)) {
+    node->right()->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
+    node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+  } else if (node->left()->is_typed(cdk::TYPE_UNSPEC) && node->right()->is_typed(cdk::TYPE_DOUBLE)) {
+    node->left()->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
+    node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+  } else if (node->left()->is_typed(cdk::TYPE_POINTER) && node->right()->is_typed(cdk::TYPE_POINTER) && compare_types(node->left()->type(), node->right()->type(), false)) {
+    node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
   } else {
-    node->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
+    throw std::string("wrong types in arguments of binary expression");
   }
-
 }
 
 void til::type_checker::ID_operation(cdk::binary_operation_node *node, int lvl) {
@@ -157,10 +174,76 @@ void til::type_checker::PID_operation(cdk::binary_operation_node *node, int lvl)
 }
 
 void til::type_checker::do_add_node(cdk::add_node *const node, int lvl) {
-  processBinaryExpression(node, lvl);
+    ASSERT_UNSPEC;
+
+  node->left()->accept(this, lvl);
+  node->right()->accept(this, lvl);
+
+  if (node->left()->is_typed(cdk::TYPE_INT) && node->right()->is_typed(cdk::TYPE_INT)) {
+    node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+  } else if (node->left()->is_typed(cdk::TYPE_DOUBLE) && node->right()->is_typed(cdk::TYPE_DOUBLE)) {
+    node->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
+  } else if (node->left()->is_typed(cdk::TYPE_DOUBLE) && node->right()->is_typed(cdk::TYPE_INT)) {
+    node->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
+  } else if (node->left()->is_typed(cdk::TYPE_INT) && node->right()->is_typed(cdk::TYPE_DOUBLE)) {
+    node->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
+  } else if (node->left()->is_typed(cdk::TYPE_INT) && node->right()->is_typed(cdk::TYPE_UNSPEC)) {
+    node->right()->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+    node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+  } else if (node->left()->is_typed(cdk::TYPE_UNSPEC) && node->right()->is_typed(cdk::TYPE_INT)) {
+    node->left()->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+    node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+  } else if (node->left()->is_typed(cdk::TYPE_DOUBLE) && node->right()->is_typed(cdk::TYPE_UNSPEC)) {
+    node->right()->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
+    node->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
+  } else if (node->left()->is_typed(cdk::TYPE_UNSPEC) && node->right()->is_typed(cdk::TYPE_DOUBLE)) {
+    node->left()->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
+    node->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
+  } else if (node->left()->is_typed(cdk::TYPE_POINTER) && node->right()->is_typed(cdk::TYPE_INT)) {
+    node->type(node->left()->type());
+  } else if (node->left()->is_typed(cdk::TYPE_INT) && node->right()->is_typed(cdk::TYPE_POINTER)) {
+    node->type(node->right()->type());
+  } else if (node->left()->is_typed(cdk::TYPE_UNSPEC) && node->right()->is_typed(cdk::TYPE_POINTER)) {
+    node->left()->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+    node->type(node->right()->type());
+  } else if (node->left()->is_typed(cdk::TYPE_POINTER) && node->right()->is_typed(cdk::TYPE_UNSPEC)) {
+    node->right()->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+    node->type(node->left()->type());
+  } else {
+    throw std::string("wrong types in arguments of binary expression");
+  }
 }
 void til::type_checker::do_sub_node(cdk::sub_node *const node, int lvl) {
-  processBinaryExpression(node, lvl);
+    ASSERT_UNSPEC;
+
+  node->left()->accept(this, lvl);
+  node->right()->accept(this, lvl);
+
+  if (node->left()->is_typed(cdk::TYPE_INT) && node->right()->is_typed(cdk::TYPE_INT)) {
+    node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+  } else if (node->left()->is_typed(cdk::TYPE_DOUBLE) && node->right()->is_typed(cdk::TYPE_DOUBLE)) {
+    node->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
+  } else if (node->left()->is_typed(cdk::TYPE_DOUBLE) && node->right()->is_typed(cdk::TYPE_INT)) {
+    node->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
+  } else if (node->left()->is_typed(cdk::TYPE_INT) && node->right()->is_typed(cdk::TYPE_DOUBLE)) {
+    node->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
+  } else if (node->left()->is_typed(cdk::TYPE_INT) && node->right()->is_typed(cdk::TYPE_UNSPEC)) {
+    node->right()->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+    node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+  } else if (node->left()->is_typed(cdk::TYPE_UNSPEC) && node->right()->is_typed(cdk::TYPE_INT)) {
+    node->left()->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+    node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+  } else if (node->left()->is_typed(cdk::TYPE_DOUBLE) && node->right()->is_typed(cdk::TYPE_UNSPEC)) {
+    node->right()->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
+    node->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
+  } else if (node->left()->is_typed(cdk::TYPE_UNSPEC) && node->right()->is_typed(cdk::TYPE_DOUBLE)) {
+    node->left()->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
+    node->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
+  } else if (node->left()->is_typed(cdk::TYPE_POINTER) && node->right()->is_typed(cdk::TYPE_POINTER) && compare_types(node->left()->type(), node->right()->type(), false)) {
+    node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+  } else {
+    throw std::string("wrong types in arguments of binary expression");
+  }
 }
 void til::type_checker::do_mul_node(cdk::mul_node *const node, int lvl) {
   ID_operation(node, lvl);
@@ -196,10 +279,10 @@ void til::type_checker::do_gt_node(cdk::gt_node *const node, int lvl) {
   ID_operation(node, lvl);
 }
 void til::type_checker::do_ne_node(cdk::ne_node *const node, int lvl) {
-  processBinaryExpression(node, lvl);
+  process_comparison_expression(node, lvl);
 }
 void til::type_checker::do_eq_node(cdk::eq_node *const node, int lvl) {
-  processBinaryExpression(node, lvl);
+  process_comparison_expression(node, lvl);
 }
 
 //---------------------------------------------------------------------------
