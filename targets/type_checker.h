@@ -28,7 +28,7 @@ namespace til {
     void ID_operation(cdk::binary_operation_node *node, int lvl);
     void PID_operation(cdk::binary_operation_node *node, int lvl);
     void processUnaryExpression(cdk::unary_operation_node *const node, int lvl);
-    void processBinaryExpression(cdk::binary_operation_node *const node, int lvl);
+    void process_comparison_expression(cdk::binary_operation_node *const node, int lvl);
     template<typename T>
     void process_literal(cdk::literal_node<T> *const node, int lvl) {
     }
