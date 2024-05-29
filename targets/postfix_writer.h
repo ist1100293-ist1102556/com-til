@@ -16,7 +16,12 @@ namespace til {
     cdk::symbol_table<til::symbol> &_symtab;
     cdk::basic_postfix_emitter &_pf;
     int _lbl;
+    // Set of all external declarations that will be declared in
+    // postfix after generating the rest of the code.
     std::set<std::string> _extern_decls;
+    // Variable used when we are evaluating a variable that has
+    // an extern name as identifier (will not generate the same code).
+    bool _is_extern;
     std::vector<std::string> _function_labels;
     std::vector<int> _loop_stop_labels;
     std::vector<int> _loop_next_labels;

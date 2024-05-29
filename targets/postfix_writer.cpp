@@ -289,6 +289,10 @@ void til::postfix_writer::do_variable_node(cdk::variable_node * const node, int 
     throw "undeclared variable " + node->name();
   }
 
+  if (sym->qualifier() == 2) {
+    _is_extern = true; // rvalue node will not generate code t o dereference this
+  }
+
   if (sym->offset() == 0) { // global
     _pf.ADDR(sym->name());
   } else {
@@ -298,8 +302,12 @@ void til::postfix_writer::do_variable_node(cdk::variable_node * const node, int 
 
 void til::postfix_writer::do_rvalue_node(cdk::rvalue_node * const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
+  _is_extern = false;
   node->lvalue()->accept(this, lvl);
-  if (node->type()->size() == 4) {
+  if (_is_extern) {
+    _is_extern = false;
+    // do nothing since we don't need to dereference the variable address
+  } else if (node->type()->size() == 4) {
     _pf.LDINT();
   } else if (node->type()->size() == 8) {
     _pf.LDDOUBLE();
@@ -316,7 +324,13 @@ void til::postfix_writer::do_assignment_node(cdk::assignment_node * const node, 
     _pf.DUP64();
   }
 
+  _is_extern = false;
   node->lvalue()->accept(this, lvl); // pushes the target address to stack
+
+  if (_is_extern) {
+    throw std::string("trying to reassign an extern function");
+  }
+  _is_extern = false;
 
   // Store the value
   if (node->rvalue()->type()->size() == 4) {
@@ -681,6 +695,7 @@ void til::postfix_writer::do_function_call_node(til::function_call_node * const 
     node->function_pointer()->accept(this, lvl);
     _pf.BRANCH();
   }
+
   _pf.TRASH(args_size);
   _pf.ALIGN();
 
