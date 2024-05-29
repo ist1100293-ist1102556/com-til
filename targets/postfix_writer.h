@@ -22,6 +22,9 @@ namespace til {
     // Variable used when we are evaluating a variable that has
     // an extern name as identifier (will not generate the same code).
     bool _is_extern;
+    // Turning it into true will make any declaration be static (not in the
+    // frame of the function)
+    bool _static_var = false;
     std::vector<std::string> _function_labels;
     std::vector<int> _loop_stop_labels;
     std::vector<int> _loop_next_labels;
@@ -52,9 +55,9 @@ namespace til {
     }
 
     bool in_function() {
-      return _function_labels.size() > 0;
+      return _function_labels.size() > 0 && !_static_var;
     }
-
+    void accept_covariant_node(cdk::expression_node * node, std::shared_ptr<cdk::basic_type> type, int lvl);
     void ID_operation(cdk::binary_operation_node *node, int lvl);
     void PID_operation(cdk::binary_operation_node *node, int lvl);
 

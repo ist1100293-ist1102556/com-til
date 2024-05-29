@@ -352,6 +352,8 @@ void til::type_checker::do_return_node(til::return_node * const node, int lvl) {
   if (!compare_types(return_type, node->value()->type(), true)) {
     throw std::string("return type mismatch");
   }
+
+  node->type(return_type);
 }
 
 // Receives 2 types that are not unspec, and checks if they are compatible

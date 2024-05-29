@@ -8,11 +8,11 @@ namespace til {
     /**
    * Class for describing return nodes.
    */
-  class return_node: public cdk::basic_node{
+  class return_node: public cdk::typed_node{
     cdk::expression_node *_value;
 
     public: 
-        return_node(int lineno, cdk::expression_node *value) : cdk::basic_node(lineno), _value(value) {
+        return_node(int lineno, cdk::expression_node *value) : cdk::typed_node(lineno), _value(value) {
         }
 
         cdk::expression_node *value() { return _value; }

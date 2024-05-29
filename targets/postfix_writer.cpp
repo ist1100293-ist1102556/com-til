@@ -7,6 +7,82 @@
 
 //---------------------------------------------------------------------------
 
+void til::postfix_writer::accept_covariant_node(cdk::expression_node * node, std::shared_ptr<cdk::basic_type> target_type, int lvl) {
+  if (target_type->name() != cdk::TYPE_FUNCTIONAL && !node->is_typed(cdk::TYPE_FUNCTIONAL)) {
+    node->accept(this, lvl);
+    if (target_type->name() == cdk::TYPE_DOUBLE && node->is_typed(cdk::TYPE_INT)) {
+      _pf.I2D();
+    }
+    return;
+  }
+
+  auto node_type_func = cdk::functional_type::cast(node->type());
+  auto target_func = cdk::functional_type::cast(target_type); 
+
+  bool wrap = false;
+  if (target_func->output(0)->name() == cdk::TYPE_DOUBLE && node_type_func->output(0)->name() == cdk::TYPE_INT) {
+    wrap = true;
+  } else {
+    for (size_t i = 0; i < target_func->input_length(); i++) {
+      if (node_type_func->input(i)->name() == cdk::TYPE_DOUBLE && target_func->input(i)->name() == cdk::TYPE_INT) {
+        wrap = true;
+        break;
+      }
+    }
+  }
+
+  // No need to wrap
+  if (!wrap) {
+    node->accept(this, lvl);
+    return;
+  }
+
+  auto aux_static_var_name = "_wrapped_aux_" + std::to_string(_lbl++);
+  auto aux_variable_node = new cdk::variable_node(node->lineno(), aux_static_var_name);
+  auto aux_rvalue = new cdk::rvalue_node(node->lineno(), aux_variable_node);
+  
+  auto aux_var_decl = new til::declaration_node(node->lineno(), 0, node_type_func, aux_static_var_name, nullptr);
+  
+  _static_var = true;
+  aux_var_decl->accept(this, lvl);
+  _static_var = false;
+
+  // Return from BSS (since it had to go there to allocate the space)
+  if (in_function()) {
+    _pf.TEXT(_function_labels.back());
+  } else {
+    _pf.DATA();
+  }
+  _pf.ALIGN();
+
+  // Since we don't initialize the aux variable in the declaration (sometimes
+  // we can't since the value can be a non-literal)
+  auto aux_assignment = new cdk::assignment_node(node->lineno(), aux_variable_node, node);
+  aux_assignment->accept(this, lvl);
+
+  auto args = new cdk::sequence_node(node->lineno());
+  auto call_args = new cdk::sequence_node(node->lineno());
+
+  for (size_t i = 0; i < target_func->input_length(); i++) {
+    // Since we are generating a wrapper function intirely in the codegen,
+    // it doesn't mean we need to comply with the syntax rules of the language.
+
+    auto arg_decl = new til::declaration_node(node->lineno(), 0, target_func->input(i), std::to_string(i), nullptr);
+    args = new cdk::sequence_node(node->lineno(), arg_decl, args);
+
+    auto arg_variable = new cdk::variable_node(node->lineno(), std::to_string(i));
+    auto arg_rvalue = new cdk::rvalue_node(node->lineno(), arg_variable);
+    call_args = new cdk::sequence_node(node->lineno(), arg_rvalue, call_args);
+  }
+
+  // Now we build the wrapper function node and function call node
+  auto aux_call_node = new til::function_call_node(node->lineno(), aux_rvalue, call_args);
+  auto aux_return_node = new til::return_node(node->lineno(), aux_call_node);
+  auto aux_wrapper_func = new til::function_node(node->lineno(), target_func->output(0), args, new cdk::sequence_node(node->lineno()), new cdk::sequence_node(node->lineno(), aux_return_node));
+
+  aux_wrapper_func->accept(this, lvl);
+}
+
 void til::postfix_writer::do_nil_node(cdk::nil_node * const node, int lvl) {
   // EMPTY
 }
@@ -316,11 +392,11 @@ void til::postfix_writer::do_rvalue_node(cdk::rvalue_node * const node, int lvl)
 
 void til::postfix_writer::do_assignment_node(cdk::assignment_node * const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
-  node->rvalue()->accept(this, lvl); // determine the new value
+  accept_covariant_node(node->rvalue(), node->lvalue()->type(), lvl);
   
-  if (node->rvalue()->type()->size() == 4) {
+  if (node->lvalue()->type()->size() == 4) {
     _pf.DUP32();
-  } else if (node->rvalue()->type()->size() == 8) {
+  } else if (node->lvalue()->type()->size() == 8) {
     _pf.DUP64();
   }
 
@@ -333,9 +409,9 @@ void til::postfix_writer::do_assignment_node(cdk::assignment_node * const node, 
   _is_extern = false;
 
   // Store the value
-  if (node->rvalue()->type()->size() == 4) {
+  if (node->lvalue()->type()->size() == 4) {
     _pf.STINT();
-  } else if (node->rvalue()->type()->size() == 8) {
+  } else if (node->lvalue()->type()->size() == 8) {
     _pf.STDOUBLE();
   }
 }
@@ -598,11 +674,11 @@ void til::postfix_writer::do_return_node(til::return_node * const node, int lvl)
   ASSERT_SAFE_EXPRESSIONS;
 
   if (node->value() != nullptr) {
-    node->value()->accept(this, lvl);
+    accept_covariant_node(node->value(), node->type(), lvl);
 
-    if (node->value()->type()->size() == 4) {
+    if (node->type()->size() == 4) {
       _pf.STFVAL32();
-    } else if (node->value()->type()->size() == 8) {
+    } else if (node->type()->size() == 8) {
       _pf.STFVAL64();
     }
   }
@@ -631,7 +707,7 @@ void til::postfix_writer::do_declaration_node(til::declaration_node * const node
     }
   if (in_function()) {
     if (node->initial() != nullptr) {
-      node->initial()->accept(this, lvl);
+      accept_covariant_node(node->initial(), node->type(), lvl);
       _pf.LOCAL(_symtab.find(node->identifier())->offset());
       if (node->type()->size() == 4) {
         _pf.STINT();
@@ -683,16 +759,17 @@ void til::postfix_writer::do_block_node(til::block_node * const node, int lvl) {
 void til::postfix_writer::do_function_call_node(til::function_call_node * const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
   int args_size = 0;
+  auto func_type = cdk::functional_type::cast(node->function_pointer()->type());
   for (int i = node->args()->size()-1; i >= 0; i--) {
     auto arg = dynamic_cast<cdk::expression_node*>(node->args()->node(i));
-    arg->accept(this, lvl);
-    args_size += arg->type()->size();
+    accept_covariant_node(arg, func_type->input(i), lvl);
+    args_size += func_type->input(i)->size();
   }
 
   if (node->function_pointer() == nullptr) {
     _pf.CALL(_function_labels.back());
   } else {
-    node->function_pointer()->accept(this, lvl);
+    accept_covariant_node(node->function_pointer(), func_type, lvl);
     _pf.BRANCH();
   }
 
