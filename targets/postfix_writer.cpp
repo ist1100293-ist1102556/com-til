@@ -767,7 +767,15 @@ void til::postfix_writer::do_block_node(til::block_node * const node, int lvl) {
 void til::postfix_writer::do_function_call_node(til::function_call_node * const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
   int args_size = 0;
-  auto func_type = cdk::functional_type::cast(node->function_pointer()->type());
+  std::shared_ptr<cdk::functional_type> func_type;
+
+  if (node->function_pointer() == nullptr) {
+    auto sym = _symtab.find("@");
+    func_type = cdk::functional_type::cast(sym->type());
+  } else {
+    func_type = cdk::functional_type::cast(node->function_pointer()->type());
+  }
+
   for (int i = node->args()->size()-1; i >= 0; i--) {
     auto arg = dynamic_cast<cdk::expression_node*>(node->args()->node(i));
     accept_covariant_node(arg, func_type->input(i), lvl);
