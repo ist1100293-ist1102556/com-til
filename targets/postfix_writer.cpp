@@ -444,114 +444,95 @@ void til::postfix_writer::do_function_node(til::function_node * const node, int 
   // a function node. However, it must start in the main function.
   // The ProgramNode (representing the whole program) doubles as a
   // main function node.
-
-  // generate the main function (RTS mandates that its name be "_main")
+  std::string lbl1;
   if (node->is_main()) {
-    _pf.TEXT("_main");
-    _pf.ALIGN();
-    _pf.GLOBAL("_main", _pf.FUNC());
-    _pf.LABEL("_main");
-    _function_labels.push_back("_main");
+    lbl1 = "_main";
+  } else {
+    lbl1 = mklbl(++_lbl);
+  }
+  
+  _pf.TEXT(lbl1);
+  _pf.ALIGN();
+  if (node->is_main()) {
+    _pf.GLOBAL(lbl1, _pf.FUNC());
+  }
+  _pf.LABEL(lbl1);
+  _function_labels.push_back(lbl1);
 
-    til::frame_size_calculator calc(_compiler, _symtab);
-    _symtab.push();
-    node->declarations()->accept(&calc, lvl);
-    node->instructions()->accept(&calc, lvl);
-    _symtab.pop();
-    _pf.ENTER(calc.size());
-    
-    _symtab.push();
-    
-    auto symbol = std::make_shared<til::symbol>(node->type(), "@", 0);
-    _symtab.insert("@", symbol);
+  std::vector<int> old_loop_stop_labels;
+  std::vector<int> old_loop_next_labels;
 
+  if (!node->is_main()) {
+    old_loop_stop_labels = _loop_stop_labels;
+    old_loop_next_labels = _loop_next_labels;
+    _loop_stop_labels.clear();
+    _loop_next_labels.clear();
+  }
+
+  til::frame_size_calculator calc(_compiler, _symtab);
+  _symtab.push();
+  node->declarations()->accept(&calc, lvl);
+  node->instructions()->accept(&calc, lvl);
+  _symtab.pop();
+  _pf.ENTER(calc.size());
+
+  _symtab.push();
+
+  auto symbol = std::make_shared<til::symbol>(node->type(), "@", 0);
+  _symtab.insert("@", symbol);
+
+  int old_offset;
+  if (node->is_main()) {
     _offset = 0;
     _processing_args = false;
     node->declarations()->accept(this, lvl);
-    
-    _end_instruction = 0;
-    for (size_t i = 0; i < node->instructions()->size(); i++) {
-      if (_end_instruction) {
-        throw "function has a return node in the middle of the code";
-      }
-      node->instructions()->node(i)->accept(this, lvl);
-    }
-    auto type = std::dynamic_pointer_cast<cdk::functional_type>(node->type());
-    if (!_end_instruction && (type->output(0)->name() != cdk::TYPE_VOID)){
-      throw "function has no return node";
-    }
-    _end_instruction = 0;
-
-    _function_labels.pop_back();
-    _symtab.pop();
   } else {
-    int lbl1 = ++_lbl;
-    std::string lbl = mklbl(lbl1);
-    _pf.TEXT(lbl);
-    _pf.ALIGN();
-    _pf.LABEL(lbl);
-    _function_labels.push_back(lbl);
-
-    std::vector<int> old_loop_stop_labels = _loop_stop_labels;
-    std::vector<int> old_loop_next_labels = _loop_next_labels;
-    _loop_stop_labels.clear();
-    _loop_next_labels.clear();
-
-    til::frame_size_calculator calc(_compiler, _symtab);
-    _symtab.push();
-    node->declarations()->accept(&calc, lvl);
-    node->instructions()->accept(&calc, lvl);
-    _symtab.pop();
-    _pf.ENTER(calc.size());
-
-    _symtab.push();
-
-    auto symbol = std::make_shared<til::symbol>(node->type(), "@", 0);
-    _symtab.insert("@", symbol);
-
-    int old_offset = _offset;
+    old_offset = _offset;
     _offset = 8;
     _processing_args = true;
     node->arguments()->accept(this, lvl);
     _offset = 0;
     _processing_args = false;
     node->declarations()->accept(this, lvl);
+  }
 
-    _end_instruction = 0;
-    for (size_t i = 0; i < node->instructions()->size(); i++) {
-      if (_end_instruction) {
-        throw "function has a return node in the middle of the code";
-      }
-      node->instructions()->node(i)->accept(this, lvl);
+  _end_instruction = 0;
+  for (size_t i = 0; i < node->instructions()->size(); i++) {
+    if (_end_instruction) {
+      throw "function has a return node in the middle of the code";
     }
-    auto type = std::dynamic_pointer_cast<cdk::functional_type>(node->type());
-    if (!_end_instruction) {
-      if (type->output(0)->name() != cdk::TYPE_VOID){
-        throw "function has no return node";
-      } else {
-        _pf.LEAVE();
-        _pf.RET();
-      }
+    node->instructions()->node(i)->accept(this, lvl);
+  }
+
+  auto type = std::dynamic_pointer_cast<cdk::functional_type>(node->type());
+  if (!_end_instruction) {
+    if (type->output(0)->name() != cdk::TYPE_VOID){
+      throw "function has no return node";
+    } else {
+      _pf.LEAVE();
+      _pf.RET();
     }
+  }
 
-    _end_instruction = 0;
+   _end_instruction = 0;
 
-    _offset = old_offset;
-    _function_labels.pop_back();
+  _offset = old_offset;
+  _function_labels.pop_back();
+  // generate the main function (RTS mandates that its name be "_main")
+  if (!node->is_main()) {
     if (in_function()) {
       _pf.TEXT(_function_labels.back());
       _pf.ALIGN();
-      _pf.ADDR(lbl);
+      _pf.ADDR(lbl1);
     } else {
       _pf.DATA();
       _pf.ALIGN();
-      _pf.SADDR(lbl);
+      _pf.SADDR(lbl1);
     }
-    _symtab.pop();
-
-    _loop_stop_labels = old_loop_stop_labels;
-    _loop_next_labels = old_loop_next_labels;
   }
+  _symtab.pop();
+  _loop_stop_labels = old_loop_stop_labels;
+  _loop_next_labels = old_loop_next_labels;
 }
 
 //---------------------------------------------------------------------------
