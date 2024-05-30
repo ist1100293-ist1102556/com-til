@@ -783,6 +783,10 @@ void til::postfix_writer::do_function_call_node(til::function_call_node * const 
   std::shared_ptr<cdk::functional_type> func_type;
 
   if (node->function_pointer() == nullptr) {
+    if (_function_labels.back() == "_main") {
+      throw "trying to call main function recursively";
+    }
+
     auto sym = _symtab.find("@");
     func_type = cdk::functional_type::cast(sym->type());
   } else {
