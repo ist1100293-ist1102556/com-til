@@ -14,7 +14,6 @@ namespace til {
                      // has offset 0, it means that it is a global variable.
     bool _is_main = false;
     int _qualifier = 0;
-    long _value; // hack!
 
   public:
     symbol(std::shared_ptr<cdk::basic_type> type, const std::string &name, int qualifier) :
@@ -51,12 +50,6 @@ namespace til {
     }
     void qualifier(int qualifier) {
       _qualifier = qualifier;
-    }
-    long value() const {
-      return _value;
-    }
-    long value(long v) {
-      return _value = v;
     }
   };
 

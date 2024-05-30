@@ -25,11 +25,21 @@ namespace til {
     // Turning it into true will make any declaration be static (not in the
     // frame of the function)
     bool _static_var = false;
+    // Stack of function labels to know in which function the node we
+    // are visiting is located at
     std::vector<std::string> _function_labels;
+    // Stacks of labels used in the stop and next instructions to jump
+    // to next iteration or end of the loop.
     std::vector<int> _loop_stop_labels;
     std::vector<int> _loop_next_labels;
+    // Flag indicating if we are visiting declarations of the arguments
+    // of a function or other types of declarations (used to help
+    // compute the offsets)
     bool _processing_args = false;
+    // Offset of the next local variable
     int _offset = 0;
+    // Flag indicating if we visited a return/next/continue instruction
+    // to detect unreachable code
     bool _end_instruction = 0;
 
   public:
